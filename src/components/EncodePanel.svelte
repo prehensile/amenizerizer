@@ -361,6 +361,5 @@
     letter-spacing: 0.06em;
     margin-top: 12px;
   }
-  .help ol,
   .help ul { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 </style>

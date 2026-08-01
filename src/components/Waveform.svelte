@@ -6,6 +6,11 @@
     samples,
     height = 96,
     color = '#59d99a',
+    /**
+     * Selection handles. Deliberately NOT `color` — drawn in the waveform's own
+     * green they disappear into it exactly where you need to grab them.
+     */
+    selectionColor = '#e7b64b',
     /** Draw N evenly spaced dividers — 16 gives the engine's slice grid. */
     divisions = 0,
     selectable = false,
@@ -17,6 +22,7 @@
     samples: Float32Array | null;
     height?: number;
     color?: string;
+    selectionColor?: string;
     divisions?: number;
     selectable?: boolean;
     start?: number;
@@ -109,15 +115,6 @@
         g.fillStyle = 'rgba(13,15,18,0.68)';
         g.fillRect(0, 0, sx, height);
         g.fillRect(ex, 0, width - ex, height);
-        g.strokeStyle = '#59d99a';
-        g.lineWidth = 2;
-        g.beginPath();
-        g.moveTo(sx, 0);
-        g.lineTo(sx, height);
-        g.moveTo(ex, 0);
-        g.lineTo(ex, height);
-        g.stroke();
-        g.lineWidth = 1;
       }
     }
 
@@ -131,6 +128,40 @@
       g.lineTo(x, height);
       g.stroke();
     }
+
+    // Handles last of all, so neither the waveform nor a divider can cut
+    // through the one thing on the canvas you are meant to grab.
+    if (selectable && samples && samples.length > 0) {
+      const CAP_W = 7;
+      const CAP_H = 6;
+      // Nudged inside the canvas: at a full selection the handles land on x=0
+      // and x=width, where half of a 2px stroke is clipped away and the pair
+      // vanishes into the border — the default state, so the one most seen.
+      const inset = (x: number) => Math.max(1, Math.min(width - 1, x));
+      const sx = inset((start / samples.length) * width);
+      const ex = inset((end / samples.length) * width);
+
+      g.strokeStyle = selectionColor;
+      g.fillStyle = selectionColor;
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(sx, 0);
+      g.lineTo(sx, height);
+      g.moveTo(ex, 0);
+      g.lineTo(ex, height);
+      g.stroke();
+      g.lineWidth = 1;
+
+      // Caps point inwards from each end, so the pair reads as a bracket around
+      // the selection rather than as two more grid lines.
+      for (const [x, dir] of [
+        [sx, 1],
+        [ex, -1],
+      ] as const) {
+        g.fillRect(x, 0, dir * CAP_W, CAP_H);
+        g.fillRect(x, height - CAP_H, dir * CAP_W, CAP_H);
+      }
+    }
   }
 
   $effect(() => {
@@ -141,6 +172,8 @@
     void width;
     void activeDivision;
     void divisions;
+    void color;
+    void selectionColor;
     draw();
   });
 
