@@ -113,15 +113,20 @@ hardware's semantics are unit-tested rather than buried in a component.
 
 **Encoding.** Source audio is downmixed, windowed-sinc resampled (band-limited —
 44.1 kHz into 25.3 kHz aliases badly otherwise), DC-corrected, gain-staged,
-optionally soft-clipped and seam-faded, then dithered to 4 bits. Sixteen levels
-is coarse enough that dither is not cosmetic; triangular is the default, with
-noise shaping available. Level matters as much as presence — a full LSB of
-triangular dither puts the noise floor at −24 dBFS, which is audible as hiss.
+optionally soft-clipped and seam-faded, then quantised to 4 bits, with dither
+available in rectangular, triangular and noise-shaped flavours at an adjustable
+level.
 
 The defaults are tuned for a 4-bit target rather than neutral: an 80 Hz
-high-pass, 2× soft clip and 0.35 LSB of dither. The noise floor is fixed, so
-loudness *is* SNR, and gain staging buys more than dither settings do. Pass
-`highPassHz: 0, drive: 1` for an unprocessed chain. See
+high-pass and 2× soft clip. The noise floor is fixed, so loudness *is* SNR, and
+gain staging buys more than any dither setting does. Pass
+`highPassHz: 0, drive: 1` for an unprocessed chain.
+
+Dither defaults to **off**, which goes against the textbook. At 16 levels it does
+kill the correlated distortion on decays, but it costs 2.3 dB of noise floor
+(−27.6 dBFS dithered against −29.8 undithered), and on breakbeats — dense and
+always moving — the distortion it removes is masked while the hiss it adds is
+not. Sparse material with long tails is the case that wants it back on. See
 [Tuning a noisy sample](#tuning-a-noisy-sample).
 
 Two length modes:
@@ -152,7 +157,8 @@ noise matters less. **The second works better.**
 - **High-pass at 80 Hz.** Deep bass eats those 16 steps and you cannot hear it on
   a Game Boy speaker anyway.
 - **Drive at 2×.** The big one — it lifts the whole loop.
-- **Dither level 0.35.**
+- **No dither.** Dither trades a cleaner tone for a louder hiss, and on most
+  breakbeats that is a bad trade.
 
 So the one thing left to you is to **trim tight** to the part you want looping.
 If it still sounds wrong, read on.
@@ -161,11 +167,11 @@ If it still sounds wrong, read on.
 
 | What you hear | What it is | What to do |
 |---|---|---|
-| A steady hiss, there even in the gaps | Too much dither, or the sample is too quiet | Dither level **down**, drive **up** |
-| A crunchy, gritty texture on cymbal tails and fades | Too little dither — the 16 steps become audible as the sound decays | Dither level **up**, or try Noise-shaped |
+| A steady hiss, there even in the gaps | The sample is too quiet, or dither is on | Drive **up**, dither **off** |
+| A crunchy, gritty texture on cymbal tails and fades | The 16 steps becoming audible as the sound decays | Dither **on** at 0.3–0.5, or try Noise-shaped |
 
-Chase one too hard and you summon the other. Dither around 0.3–0.5 with drive at
-2–3× is usually the sweet spot.
+Chase one too hard and you summon the other. Dense, busy loops mask the grit and
+want no dither; sparse material with long tails is the case that needs it.
 
 ### Not worth reaching for
 

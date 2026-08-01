@@ -186,11 +186,15 @@ describe('encode pipeline', () => {
       tma: TMA_DEFAULT,
       highPassHz: 80,
       drive: 2,
-      ditherAmount: 0.35,
+      dither: 'none',
     });
     const flat = encodeSample(src, 44100, { tma: TMA_DEFAULT, highPassHz: 0, drive: 1 });
     expect(implicit.packed).toEqual(tuned.packed);
     expect(implicit.packed).not.toEqual(flat.packed);
+    // Dither off is a deliberate listening call, not an oversight — pin it so a
+    // "always dither" cleanup shows up as a failure rather than a quiet change.
+    const dithered = encodeSample(src, 44100, { tma: TMA_DEFAULT, dither: 'triangular' });
+    expect(implicit.packed).not.toEqual(dithered.packed);
   });
 
   it('reports a noise floor consistent with 4 bits', () => {

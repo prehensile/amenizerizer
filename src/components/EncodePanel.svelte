@@ -187,10 +187,10 @@
         <div class="field">
           <label for="dither">Dither</label>
           <select id="dither" bind:value={app.dither}>
-            <option value="triangular">Triangular (default)</option>
+            <option value="none">None (default)</option>
+            <option value="triangular">Triangular</option>
             <option value="shaped">Noise-shaped</option>
             <option value="rectangular">Rectangular</option>
-            <option value="none">None</option>
           </select>
         </div>
         {#if app.dither !== 'none'}
@@ -229,7 +229,10 @@
             cannot hear it on a Game Boy speaker anyway.
           </li>
           <li><strong>Drive at 2×.</strong> The big one — it lifts the whole loop.</li>
-          <li><strong>Dither level 0.35.</strong></li>
+          <li>
+            <strong>No dither.</strong> Dither trades a cleaner tone for a louder hiss, and
+            on most breakbeats that is a bad trade.
+          </li>
         </ul>
         <p>
           So the one thing left to you is to <strong>trim tight</strong> to the part you
@@ -237,17 +240,17 @@
         </p>
         <p class="lead">Work out which noise you have</p>
         <p>
-          <strong>A steady hiss, there even in the gaps</strong> — too much dither, or the
-          sample is too quiet. Dither level <em>down</em>, drive <em>up</em>.
+          <strong>A steady hiss, there even in the gaps</strong> — the sample is too quiet,
+          or you have turned dither on. Drive <em>up</em>, dither <em>off</em>.
         </p>
         <p>
           <strong>A crunchy, gritty texture on cymbal tails and fades</strong> — the
-          opposite: too little dither, so the 16 steps become audible as the sound decays.
-          Dither level <em>up</em>, or try Noise-shaped.
+          opposite problem: the 16 steps becoming audible as the sound decays. This is what
+          dither is for. Turn it on at <em>0.3–0.5</em>, or try Noise-shaped.
         </p>
         <p>
-          Chase one too hard and you summon the other. Dither around 0.3–0.5 with drive at
-          2–3× is usually the sweet spot.
+          Chase one too hard and you summon the other. Dense, busy loops mask the grit and
+          want no dither; sparse material with long tails is the case that needs it.
         </p>
         <p class="lead">Not worth reaching for</p>
         <ul>

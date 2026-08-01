@@ -5,9 +5,16 @@
  * The defaults are deliberately *opinionated* rather than neutral: at 16 levels
  * an unprocessed encode is audibly noisy, and the fix is mostly gain staging,
  * not dither. So the chain defaults to an 80 Hz high-pass (sub energy only eats
- * headroom), 2x soft clip (the single biggest win — the noise floor is fixed, so
- * loudness *is* SNR) and 0.35 LSB of dither. Pass `highPassHz: 0, drive: 1` for
- * a neutral chain. `state.svelte.ts` mirrors these; keep the two in step.
+ * headroom) and 2x soft clip — the single biggest win, because the noise floor
+ * is fixed, so loudness *is* SNR. Pass `highPassHz: 0, drive: 1` for a neutral
+ * chain. `state.svelte.ts` mirrors these; keep the two in step.
+ *
+ * Dither defaults to **off**, which is a listening call, not a measurement one.
+ * Textbook practice says always dither, and at 4 bits it does kill the
+ * correlated distortion on decays — but it costs 2.3 dB of noise floor
+ * (-27.6 dBFS dithered vs -29.8 undithered), and on breakbeats, which are dense
+ * and always moving, the distortion it removes is masked while the hiss it adds
+ * is not. Sparse material with long tails is the case that wants it back on.
  */
 
 import {
@@ -95,7 +102,7 @@ export function encodeSample(
     normalizeTarget = 0.98,
     drive = 2,
     fadeMs = 2,
-    dither = 'triangular',
+    dither = 'none',
     ditherAmount = 0.35,
     ditherSeed = 0x1234,
   } = options;

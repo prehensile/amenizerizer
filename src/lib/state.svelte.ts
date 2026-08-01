@@ -43,7 +43,9 @@ class AppState {
   drive = $state(2);
   fadeMs = $state(2);
   removeDcOffset = $state(true);
-  dither = $state<Dither>('triangular');
+  // Off by default — see the header comment on `encodeSample`. The amount is
+  // still the value dither comes back at when someone switches it on.
+  dither = $state<Dither>('none');
   ditherAmount = $state(0.35);
 
   // --- Derived encode output (recomputed by an effect in App) ------------

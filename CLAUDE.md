@@ -141,9 +141,13 @@ imported by Node tests.
   hosts without CORS cannot be added client-side, whatever the app does.
 - The encoder is intentionally pure JS (windowed-sinc resampling, mulberry32-seeded
   dither) rather than `OfflineAudioContext`, so output is deterministic and testable.
-  Dither at 4 bits is audible, not cosmetic — keep it on by default, but *level*
-  matters as much as presence. One LSB of TPDF puts the floor at −24 dBFS, which
-  users hear as hiss; the default is 0.35 LSB via `ditherAmount`.
+  **Dither defaults to `none`, deliberately.** This contradicts the textbook and an
+  earlier version of this file, so do not "fix" it: it is a listening call the repo
+  owner made after A/B-ing real material. Dither does remove correlated distortion
+  on decays, but it costs 2.3 dB of noise floor (−27.6 dBFS at 0.35 LSB TPDF vs
+  −29.8 undithered), and on breakbeats the distortion is masked while the hiss is
+  not. `ditherAmount` (0.35) is what it comes back at when switched on; one full
+  LSB puts the floor at −24 dBFS, which reads as hiss.
   Noise shaping is a trade, not a free win: the NTF is `1 − 1.5z⁻¹ + 0.5z⁻²`,
   measured at −5.4 dB below 1 kHz for +7.8 dB at 9–12.6 kHz. At a 25 kHz sample
   rate that band is still plainly audible, so `shaped` cures graininess, not hiss.
@@ -157,7 +161,7 @@ imported by Node tests.
 - [reference/gb-amenizer-flask](reference/gb-amenizer-flask) is a git submodule
   (someone else's Python take on the same problem), kept for reference only.
 - **The encode defaults are opinionated, not neutral**: 80 Hz high-pass, 2x soft clip,
-  0.35 LSB dither. At 16 levels the noise floor is fixed, so loudness *is* SNR and gain
+  no dither. At 16 levels the noise floor is fixed, so loudness *is* SNR and gain
   staging beats anything in the dither settings — drive alone is worth ~8 dB. Do not
   "clean these up" back to a neutral chain. They are declared twice, in
   [encode.ts](src/lib/audio/encode.ts) and [state.svelte.ts](src/lib/state.svelte.ts),
