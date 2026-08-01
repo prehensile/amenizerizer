@@ -1,0 +1,3 @@
+[submodule "reference/gb-amenizer-flask"]
+	path = reference/gb-amenizer-flask
+	url = https://github.com/Chiptune-Anamnesis/gb-amenizer-flask.git
