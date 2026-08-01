@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "identifier": "bag-of-items-all-the-breaks-1-2-3",
+    "title": "Bag of Items, LLC - All The Breaks Vol. 1, 2, 3",
+    "creator": "Bag of Items, LLC",
+    "mediatype": "audio"
+  },
+  "files": [
+    {
+      "name": "Bag of Items, LLC - All The Breaks Vol. 1, 2, 3/01 Lee Dorsey - Get Out Of My Life, Woman.mp3",
+      "format": "VBR MP3",
+      "length": "00:05",
+      "size": "101462"
+    },
+    {
+      "name": "Bag of Items, LLC - All The Breaks Vol. 1, 2, 3/02 Allen Toussaint - Get Out Of My Life, Woman.mp3",
+      "format": "VBR MP3",
+      "length": "00:05",
+      "size": "76217"
+    },
+    {
+      "name": "Bag of Items, LLC - All The Breaks Vol. 1, 2, 3/03 Solomon Burke - Get Out Of My Life, Woman (Panned, Right).mp3",
+      "format": "VBR MP3",
+      "length": "00:07",
+      "size": "175093"
+    },
+    {
+      "name": "Bag of Items, LLC - All The Breaks Vol. 1, 2, 3/04 The Honeydrippers - Impeach the President.mp3",
+      "format": "VBR MP3",
+      "length": "00:13",
+      "size": "280514"
+    },
+    {
+      "name": "Bag of Items, LLC - All The Breaks Vol. 1, 2, 3/01 Lee Dorsey - Get Out Of My Life, Woman.flac",
+      "format": "Flac",
+      "length": "5.16",
+      "size": "410916"
+    },
+    {
+      "name": "Bag of Items, LLC - All The Breaks Vol. 1, 2, 3/01 Lee Dorsey - Get Out Of My Life, Woman.png",
+      "format": "PNG",
+      "size": "31198"
+    },
+    {
+      "name": "Bag of Items, LLC - All The Breaks Vol. 1, 2, 3/02 Allen Toussaint - Get Out Of My Life, Woman.flac",
+      "format": "Flac",
+      "length": "5.7",
+      "size": "209457"
+    }
+  ]
+}

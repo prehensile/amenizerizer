@@ -1,0 +1,73 @@
+:root {
+  --bg: #0d0f12;
+  --panel: #14181d;
+  --panel-2: #1a1f26;
+  --line: #262d36;
+  --line-2: #333c48;
+  --text: #dbe2ea;
+  --muted: #7c8899;
+  --accent: #59d99a;
+  --accent-dim: #2f6f52;
+  --warn: #e7b64b;
+  --err: #ef6b6b;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  color-scheme: dark;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent-dim); background: #202730; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.primary {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: #eafff4;
+  font-weight: 600;
+}
+button.primary:hover:not(:disabled) { background: #3a8a66; }
+
+input[type="file"] { display: none; }
+
+input[type="number"], input[type="text"], select {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  border-radius: 5px;
+  padding: 4px 7px;
+  width: 100%;
+}
+
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+label { color: var(--muted); font-size: 12px; }
+
+/* Caption for a read-only value. Not a <label> — it labels no control. */
+.lbl { color: var(--muted); font-size: 12px; }
+
+code, .mono { font-family: var(--mono); font-size: 12px; }
+
+.muted { color: var(--muted); }
+.warn { color: var(--warn); }
+.err { color: var(--err); }
+.accent { color: var(--accent); }
