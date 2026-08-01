@@ -81,7 +81,9 @@
 {:else if item}
   <div class="head">
     <div>
-      <strong>{item.title}</strong>
+      <a href={item.detailsUrl} target="_blank" rel="noopener noreferrer"
+        ><strong>{item.title}</strong></a
+      >
       {#if item.creator}<span class="muted"> · {item.creator}</span>{/if}
     </div>
     <div class="spacer"></div>
@@ -173,5 +175,4 @@
   .go { color: var(--accent); font-size: 12px; flex: none; width: 34px; text-align: right; }
   .empty { padding: 12px; font-size: 13px; }
   .foot { margin: 10px 0 0; font-size: 12px; }
-  a { color: var(--accent); }
 </style>

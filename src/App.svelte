@@ -48,7 +48,13 @@
     <div>
       <h1>Amenizerizer<span class="accent">Js</span></h1>
       <p class="muted">
-        Inject a sample into nitro2k01's Amenizer Game Boy sample masher.
+        Inject a sample into
+        <a
+          href="https://blog.gg8.se/wordpress/2013/02/11/gameboy-project-week-6-can-i-have-an-a-men/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >nitro2k01's Amenizer</a>
+        Game Boy sample masher.
       </p>
     </div>
     {#if app.encoding}<span class="muted mono">encoding…</span>{/if}
