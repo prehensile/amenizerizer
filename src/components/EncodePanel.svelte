@@ -193,7 +193,79 @@
             <option value="none">None</option>
           </select>
         </div>
+        {#if app.dither !== 'none'}
+          <div class="field">
+            <label for="dither-amt">Dither level {app.ditherAmount.toFixed(2)} LSB</label>
+            <input
+              id="dither-amt"
+              type="range"
+              min="0.1"
+              max="1"
+              step="0.05"
+              bind:value={app.ditherAmount}
+            />
+          </div>
+        {/if}
       </fieldset>
+
+      <!-- Troubleshooting lives next to the controls it talks about, collapsed
+           so it costs nothing until someone has the problem. -->
+      <details class="help">
+        <summary>Sounds noisy? Start here</summary>
+        <p>
+          The Game Boy has <strong>16 volume steps</strong>. Every noise problem comes from
+          that. Think of it as drawing with 16 shades of grey: use only the middle four and
+          it looks blocky and grainy — use all sixteen and it looks fine.
+        </p>
+        <p>
+          There is a fixed amount of noise sitting under your sample and you cannot remove
+          it. You get two moves: make the noise quieter, or make the sample louder so the
+          noise matters less. <strong>The second works better.</strong>
+        </p>
+        <p class="lead">What the defaults already do</p>
+        <ul>
+          <li>
+            <strong>High-pass at 80 Hz.</strong> Deep bass eats those 16 steps and you
+            cannot hear it on a Game Boy speaker anyway.
+          </li>
+          <li><strong>Drive at 2×.</strong> The big one — it lifts the whole loop.</li>
+          <li><strong>Dither level 0.35.</strong></li>
+        </ul>
+        <p>
+          So the one thing left to you is to <strong>trim tight</strong> to the part you
+          want looping. If it still sounds wrong, read on.
+        </p>
+        <p class="lead">Work out which noise you have</p>
+        <p>
+          <strong>A steady hiss, there even in the gaps</strong> — too much dither, or the
+          sample is too quiet. Dither level <em>down</em>, drive <em>up</em>.
+        </p>
+        <p>
+          <strong>A crunchy, gritty texture on cymbal tails and fades</strong> — the
+          opposite: too little dither, so the 16 steps become audible as the sound decays.
+          Dither level <em>up</em>, or try Noise-shaped.
+        </p>
+        <p>
+          Chase one too hard and you summon the other. Dither around 0.3–0.5 with drive at
+          2–3× is usually the sweet spot.
+        </p>
+        <p class="lead">Not worth reaching for</p>
+        <ul>
+          <li>
+            <strong>Normalise</strong> only looks at the single loudest peak, so one stray
+            snare stops it doing anything useful. Drive is what raises the overall level.
+          </li>
+          <li>
+            <strong>Noise-shaped</strong> is not a "less noise" setting despite the name — it
+            moves noise up into the treble. Good for grittiness, worse for hiss.
+          </li>
+          <li><strong>Loop-seam fade</strong> only fixes the click where the loop wraps.</li>
+        </ul>
+        <p>
+          Short version: loud and slightly distorted beats quiet and clean. Sixteen steps is
+          so few that you want to use every one of them.
+        </p>
+      </details>
     </div>
 
     <div class="preview">
@@ -260,4 +332,35 @@
   }
   .stats div { display: flex; flex-direction: column; gap: 2px; }
   .small { font-size: 12px; }
+
+  .help {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-2);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+  .help summary {
+    padding: 9px 12px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 13px;
+    /* Keep the native disclosure triangle: this is a plain text block, not a
+       panel, and it should not read like the Panel caret. */
+  }
+  .help summary:hover { color: var(--accent); }
+  .help > :not(summary) { margin: 0 12px 9px; }
+  .help > p:first-of-type { margin-top: 2px; }
+  .help strong { color: var(--text); font-weight: 600; }
+  .help em { color: var(--accent); font-style: normal; font-weight: 600; }
+  .help .lead {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 12px;
+  }
+  .help ol,
+  .help ul { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 </style>

@@ -9,7 +9,7 @@ Drop in a loop, play it with a virtual Game Boy d-pad, and download a working
 ```bash
 npm install
 npm run dev     # http://localhost:5173
-npm test        # 59 tests
+npm test        # 89 tests
 npm run build   # static bundle in dist/
 ```
 
@@ -115,7 +115,14 @@ hardware's semantics are unit-tested rather than buried in a component.
 44.1 kHz into 25.3 kHz aliases badly otherwise), DC-corrected, gain-staged,
 optionally soft-clipped and seam-faded, then dithered to 4 bits. Sixteen levels
 is coarse enough that dither is not cosmetic; triangular is the default, with
-noise shaping available.
+noise shaping available. Level matters as much as presence — a full LSB of
+triangular dither puts the noise floor at −24 dBFS, which is audible as hiss.
+
+The defaults are tuned for a 4-bit target rather than neutral: an 80 Hz
+high-pass, 2× soft clip and 0.35 LSB of dither. The noise floor is fixed, so
+loudness *is* SNR, and gain staging buys more than dither settings do. Pass
+`highPassHz: 0, drive: 1` for an unprocessed chain. See
+[Tuning a noisy sample](#tuning-a-noisy-sample).
 
 Two length modes:
 - **Fit** — stretch the selection to exactly one bar. Slices land on sixteenths
@@ -129,6 +136,49 @@ reproducing the stock ROM's stored `0x8C` / `0x8474`.
 **Rate patching.** Optionally rewrites the TMA operand at `0x016A`, letting you
 set the loop's BPM directly. The engine clamps TMA to `1..$E1` at runtime and so
 does the patcher.
+
+## Tuning a noisy sample
+
+The Game Boy has **16 volume steps**. Every noise problem comes from that. Think
+of it as drawing with 16 shades of grey: use only the middle four and it looks
+blocky and grainy — use all sixteen and it looks fine.
+
+There is a fixed amount of noise sitting under your sample and you cannot remove
+it. You get two moves: make the noise quieter, or make the sample louder so the
+noise matters less. **The second works better.**
+
+### What the defaults already do
+
+- **High-pass at 80 Hz.** Deep bass eats those 16 steps and you cannot hear it on
+  a Game Boy speaker anyway.
+- **Drive at 2×.** The big one — it lifts the whole loop.
+- **Dither level 0.35.**
+
+So the one thing left to you is to **trim tight** to the part you want looping.
+If it still sounds wrong, read on.
+
+### Work out which noise you have
+
+| What you hear | What it is | What to do |
+|---|---|---|
+| A steady hiss, there even in the gaps | Too much dither, or the sample is too quiet | Dither level **down**, drive **up** |
+| A crunchy, gritty texture on cymbal tails and fades | Too little dither — the 16 steps become audible as the sound decays | Dither level **up**, or try Noise-shaped |
+
+Chase one too hard and you summon the other. Dither around 0.3–0.5 with drive at
+2–3× is usually the sweet spot.
+
+### Not worth reaching for
+
+- **Normalise** only looks at the single loudest peak, so one stray snare stops
+  it doing anything useful. Drive is what raises the overall level.
+- **Noise-shaped** is not a "less noise" setting despite the name. Its noise
+  transfer function is `1 − 1.5z⁻¹ + 0.5z⁻²`, measured at −5.4 dB below 1 kHz for
+  +7.8 dB at 9–12.6 kHz — it moves noise into the treble. Good for grittiness,
+  worse for hiss.
+- **Loop-seam fade** only fixes the click where the loop wraps.
+
+Short version: loud and slightly distorted beats quiet and clean. Sixteen steps
+is so few that you want to use every one of them.
 
 ## Verifying by ear
 

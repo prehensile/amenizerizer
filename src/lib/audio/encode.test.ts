@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { encodeSample } from './encode';
-import { nibblesToFloat, packNibbles, quantizeToNibbles, unpackNibbles } from './quantize';
+import { nibblesToFloat, packNibbles, quantizeToNibbles, unpackNibbles, type Dither } from './quantize';
 import { resample } from './resample';
 import { SAMPLE_BYTES, TMA_DEFAULT, TOTAL_SAMPLES, sampleRateForTma } from '../gb/amenizer';
 import { peak, rms } from './process';
@@ -41,10 +41,46 @@ describe('quantiser', () => {
   it('stays inside 0..15 under heavy dither', () => {
     const src = sine(4096, 44100, 200);
     for (const dither of ['none', 'rectangular', 'triangular', 'shaped'] as const) {
-      const q = quantizeToNibbles(src, { dither });
+      const q = quantizeToNibbles(src, { dither, amount: 1 });
       expect(Math.min(...q)).toBeGreaterThanOrEqual(0);
       expect(Math.max(...q)).toBeLessThanOrEqual(15);
     }
+  });
+
+  it('scales dither with `amount`', () => {
+    // At 4 bits a full-LSB TPDF floor sits only ~24 dB down and reads as hiss,
+    // so the level is a control, not a constant. Less dither, less noise.
+    const src = sine(8192, 25267, 200, 0.5);
+    const errRms = (amount: number) => {
+      const back = nibblesToFloat(quantizeToNibbles(src, { dither: 'triangular', amount }));
+      let s = 0;
+      for (let i = 0; i < src.length; i++) s += (back[i] - src[i]) ** 2;
+      return Math.sqrt(s / src.length);
+    };
+    expect(errRms(1)).toBeGreaterThan(errRms(0.5));
+    expect(errRms(0.5)).toBeGreaterThan(errRms(0.25));
+  });
+
+  it('shapes noise away from the low end, not into it', () => {
+    // Regression: the error-feedback term used to be *added*, which inverts the
+    // noise transfer function into 1 + 1.5z^-1 - 0.5z^-2 — a +6 dB boost at DC.
+    // That made "noise-shaped" the noisiest option in the midrange, the exact
+    // opposite of the label. The sign of the `v -=` is what this guards.
+    // The NTF's zero sits at DC, so probe DC rather than a filter band: with
+    // 1 - 1.5z^-1 + 0.5z^-2 the coefficients sum to zero, so the error's
+    // running sum telescopes and stays bounded. Flat dither random-walks it.
+    const src = sine(8192, 25267, 300, 0.5);
+    const maxDrift = (dither: Dither) => {
+      const back = nibblesToFloat(quantizeToNibbles(src, { dither, amount: 0.5 }));
+      let acc = 0;
+      let worst = 0;
+      for (let i = 0; i < src.length; i++) {
+        acc += back[i] - src[i];
+        worst = Math.max(worst, Math.abs(acc));
+      }
+      return worst;
+    };
+    expect(maxDrift('shaped')).toBeLessThan(maxDrift('triangular') / 5);
   });
 
   it('is deterministic for a given seed', () => {
@@ -118,12 +154,15 @@ describe('encode pipeline', () => {
     expect(peak(tail)).toBeLessThanOrEqual(1 / 16 + 1e-6);
   });
 
+  // The shipped defaults deliberately high-pass and soft-clip, so gain-staging
+  // assertions have to ask for a neutral chain or they measure the clipper.
+  const neutral = { fadeMs: 0, dither: 'none', highPassHz: 0, drive: 1 } as const;
+
   it('normalises towards the requested target', () => {
     const r = encodeSample(sine(44100, 44100, 220, 0.05), 44100, {
       tma: TMA_DEFAULT,
       normalizeTarget: 0.9,
-      fadeMs: 0,
-      dither: 'none',
+      ...neutral,
     });
     expect(r.stats.peak).toBeCloseTo(0.9, 2);
   });
@@ -132,10 +171,26 @@ describe('encode pipeline', () => {
     const r = encodeSample(sine(44100, 44100, 220, 0.5), 44100, {
       tma: TMA_DEFAULT,
       gainDb: -6,
-      fadeMs: 0,
-      dither: 'none',
+      ...neutral,
     });
     expect(r.stats.peak).toBeCloseTo(0.25, 2);
+  });
+
+  it('defaults to the tuned chain, not a neutral one', () => {
+    // 16 levels is coarse enough that an unprocessed encode is audibly noisy,
+    // so the defaults trade headroom and sub for SNR. If someone "cleans these
+    // up" back to neutral, the app gets quieter and hissier by default.
+    const src = sine(44100, 44100, 220, 0.5);
+    const implicit = encodeSample(src, 44100, { tma: TMA_DEFAULT });
+    const tuned = encodeSample(src, 44100, {
+      tma: TMA_DEFAULT,
+      highPassHz: 80,
+      drive: 2,
+      ditherAmount: 0.35,
+    });
+    const flat = encodeSample(src, 44100, { tma: TMA_DEFAULT, highPassHz: 0, drive: 1 });
+    expect(implicit.packed).toEqual(tuned.packed);
+    expect(implicit.packed).not.toEqual(flat.packed);
   });
 
   it('reports a noise floor consistent with 4 bits', () => {

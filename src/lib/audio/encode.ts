@@ -1,6 +1,13 @@
 /**
  * The encode pipeline: arbitrary source audio -> 16 KiB of packed 4-bit PCM
  * laid out so the engine's 16 slices land on musical sixteenth notes.
+ *
+ * The defaults are deliberately *opinionated* rather than neutral: at 16 levels
+ * an unprocessed encode is audibly noisy, and the fix is mostly gain staging,
+ * not dither. So the chain defaults to an 80 Hz high-pass (sub energy only eats
+ * headroom), 2x soft clip (the single biggest win — the noise floor is fixed, so
+ * loudness *is* SNR) and 0.35 LSB of dither. Pass `highPassHz: 0, drive: 1` for
+ * a neutral chain. `state.svelte.ts` mirrors these; keep the two in step.
  */
 
 import {
@@ -49,6 +56,8 @@ export interface EncodeOptions {
   drive?: number;
   fadeMs?: number;
   dither?: Dither;
+  /** Dither amplitude in LSBs. See {@link quantizeToNibbles}. */
+  ditherAmount?: number;
   ditherSeed?: number;
 }
 
@@ -81,12 +90,13 @@ export function encodeSample(
     fitMode = 'fit',
     tma,
     removeDcOffset = true,
-    highPassHz = 0,
+    highPassHz = 80,
     gainDb = null,
     normalizeTarget = 0.98,
-    drive = 1,
+    drive = 2,
     fadeMs = 2,
     dither = 'triangular',
+    ditherAmount = 0.35,
     ditherSeed = 0x1234,
   } = options;
 
@@ -134,7 +144,7 @@ export function encodeSample(
     if (Math.abs(preClip[i]) > 0.999) clippedSamples++;
   }
 
-  const nibbles = quantizeToNibbles(buf, { dither, seed: ditherSeed });
+  const nibbles = quantizeToNibbles(buf, { dither, seed: ditherSeed, amount: ditherAmount });
   const packed = packNibbles(nibbles);
   const quantized = nibblesToFloat(nibbles);
 

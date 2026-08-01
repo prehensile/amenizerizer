@@ -24,38 +24,60 @@ function rng(seed: number): () => number {
 export interface QuantizeOptions {
   dither?: Dither;
   seed?: number;
+  /**
+   * Dither amplitude in LSBs. 1 is textbook TPDF — enough to fully decorrelate
+   * the error, but at 4 bits one LSB of noise is only 24 dB down, which reads
+   * as hiss. Below ~0.5 a little noise modulation creeps back in; that is
+   * usually the better trade here. Ignored when `dither` is 'none'.
+   */
+  amount?: number;
 }
 
 /**
  * Float [-1, 1) -> nibbles 0..15.
  *
- * `shaped` uses second-order error feedback, which pushes the quantisation
- * noise up towards Nyquist where the GB's own output filtering hides it.
+ * `shaped` is TPDF dither plus second-order error feedback, which puts a null
+ * at DC and tilts the noise up towards Nyquist. The noise transfer function is
+ * `1 - 1.5z^-1 + 0.5z^-2`: unity at DC minus 1.5 plus 0.5 = 0, and 3x (+9.5 dB)
+ * at Nyquist. Total noise power goes *up* by 5.4 dB — the win is only that it
+ * moves out of the midrange, so it is a trade, not a free improvement.
  */
 export function quantizeToNibbles(
   samples: Float32Array,
-  { dither = 'triangular', seed = 0x1234 }: QuantizeOptions = {},
+  { dither = 'triangular', seed = 0x1234, amount = 0.5 }: QuantizeOptions = {},
 ): Uint8Array {
   const out = new Uint8Array(samples.length);
   const rand = rng(seed);
+  const amp = dither === 'none' ? 0 : Math.max(0, amount);
   let e1 = 0;
   let e2 = 0;
 
   for (let i = 0; i < samples.length; i++) {
     // Map [-1, 1) onto the 0..15 grid centred on 7.5.
-    let v = samples[i] * 8 + 7.5;
+    const v = samples[i] * 8 + 7.5;
 
-    if (dither === 'shaped') v += 1.5 * e1 - 0.5 * e2;
-    else if (dither === 'rectangular') v += rand() - 0.5;
-    else if (dither === 'triangular') v += rand() - rand();
+    // Subtract the weighted past error — the sign is what makes this a
+    // high-pass. Adding it (as this once did) inverts the NTF into a +6 dB
+    // *boost* at DC, which is audibly worse than no shaping at all.
+    const corrected = dither === 'shaped' ? v - (1.5 * e1 - 0.5 * e2) : v;
 
-    let n = Math.round(v);
+    let w = corrected;
+    if (dither === 'rectangular') w += (rand() - 0.5) * amp;
+    else if (dither === 'triangular' || dither === 'shaped') w += (rand() - rand()) * amp;
+
+    let n = Math.round(w);
     if (n < 0) n = 0;
     else if (n > 15) n = 15;
 
     if (dither === 'shaped') {
       e2 = e1;
-      e1 = n - v;
+      // Measured against the corrected signal *before* dither, so the dither
+      // noise goes round the loop too and gets shaped with everything else.
+      // Against the post-dither value it would leak through flat and put a
+      // random walk back at DC, undoing the point of the null.
+      // Clamped because a clipped sample produces an arbitrarily large error,
+      // and at a loop gain of 1.5 that rings instead of decaying.
+      e1 = Math.max(-1, Math.min(1, n - corrected));
     }
     out[i] = n;
   }

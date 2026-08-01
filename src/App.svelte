@@ -36,6 +36,7 @@
     void app.drive;
     void app.fadeMs;
     void app.dither;
+    void app.ditherAmount;
 
     clearTimeout(timer);
     timer = setTimeout(() => app.runEncode(), 90);

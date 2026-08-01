@@ -14,7 +14,7 @@ Svelte 5 + TypeScript + Vite, tested with Vitest.
 
 ```bash
 npm run dev      # http://localhost:5173
-npm test         # 87 tests, ~1.3s, no browser needed
+npm test         # 89 tests, ~1.4s, no browser needed
 npm run check    # svelte-check
 npm run build    # svelte-check + static bundle into dist/
 ```
@@ -141,11 +141,28 @@ imported by Node tests.
   hosts without CORS cannot be added client-side, whatever the app does.
 - The encoder is intentionally pure JS (windowed-sinc resampling, mulberry32-seeded
   dither) rather than `OfflineAudioContext`, so output is deterministic and testable.
-  Dither at 4 bits is audible, not cosmetic — keep it on by default.
+  Dither at 4 bits is audible, not cosmetic — keep it on by default, but *level*
+  matters as much as presence. One LSB of TPDF puts the floor at −24 dBFS, which
+  users hear as hiss; the default is 0.35 LSB via `ditherAmount`.
+  Noise shaping is a trade, not a free win: the NTF is `1 − 1.5z⁻¹ + 0.5z⁻²`,
+  measured at −5.4 dB below 1 kHz for +7.8 dB at 9–12.6 kHz. At a 25 kHz sample
+  rate that band is still plainly audible, so `shaped` cures graininess, not hiss.
+  The fed-back error must be measured pre-dither or the dither leaks through
+  unshaped — [encode.test.ts](src/lib/audio/encode.test.ts) pins both the sign
+  and the DC null.
 - `fit` mode stretches a selection to exactly one bar (slices land on sixteenths,
   pitch changes); `rate` mode preserves pitch and pads/truncates.
 - [resources/amenizer-embedded-sample.wav](resources/amenizer-embedded-sample.wav) is
   the stock break extracted at its native rate — handy for ear-checking a change.
 - [reference/gb-amenizer-flask](reference/gb-amenizer-flask) is a git submodule
   (someone else's Python take on the same problem), kept for reference only.
-- README.md still says "59 tests"; it is 87. Update it if you touch that section.
+- **The encode defaults are opinionated, not neutral**: 80 Hz high-pass, 2x soft clip,
+  0.35 LSB dither. At 16 levels the noise floor is fixed, so loudness *is* SNR and gain
+  staging beats anything in the dither settings — drive alone is worth ~8 dB. Do not
+  "clean these up" back to a neutral chain. They are declared twice, in
+  [encode.ts](src/lib/audio/encode.ts) and [state.svelte.ts](src/lib/state.svelte.ts),
+  and must stay in step; a test pins the encoder's set. Tests that assert gain staging
+  pass `highPassHz: 0, drive: 1` to get a neutral chain.
+- README has a **Tuning a noisy sample** section aimed at users, mirrored as a
+  collapsed `<details>` block in [EncodePanel.svelte](src/components/EncodePanel.svelte).
+  If the encode defaults change, all four places need updating.

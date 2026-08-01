@@ -37,11 +37,14 @@ class AppState {
   autoNormalize = $state(true);
   normalizeTarget = $state(0.98);
   gainDb = $state(0);
-  highPassHz = $state(0);
-  drive = $state(1);
+  // These three mirror the encoder's defaults — see the header comment on
+  // `encodeSample`. They are tuned for a 4-bit target, not neutral.
+  highPassHz = $state(80);
+  drive = $state(2);
   fadeMs = $state(2);
   removeDcOffset = $state(true);
   dither = $state<Dither>('triangular');
+  ditherAmount = $state(0.35);
 
   // --- Derived encode output (recomputed by an effect in App) ------------
   encoded = $state<EncodeResult | null>(null);
@@ -126,6 +129,7 @@ class AppState {
         drive: this.drive,
         fadeMs: this.fadeMs,
         dither: this.dither,
+        ditherAmount: this.ditherAmount,
       });
     } finally {
       this.encoding = false;
