@@ -7,19 +7,34 @@
   import { md5Hex } from '../lib/gb/rom';
   import { GLOBAL_CHECKSUM, HEADER_CHECKSUM, globalChecksum, headerChecksum } from '../lib/gb/rom';
 
+  /**
+   * Safari and Firefox only honour `download` on an anchor that is actually in
+   * the document, and revoking the object URL in the same tick can beat the
+   * download to it — either way the file lands as the blob's UUID with no
+   * extension. Hence the append/remove and the deferred revoke.
+   */
   function download(bytes: Uint8Array, name: string, type: string) {
     const url = URL.createObjectURL(new Blob([bytes.slice().buffer as ArrayBuffer], { type }));
     const a = document.createElement('a');
     a.href = url;
     a.download = name;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.append(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
   }
 
   const patched = $derived(app.patched);
 
+  // Trailing separators are stripped so the extension we append is the only one
+  // the browser can see — `foo..gb` and `foo-.gb` both read as odd filenames.
   const baseName = $derived(
-    (app.source?.name ?? 'amenizer').replace(/\.[^.]+$/, '').replace(/[^\w.-]+/g, '-'),
+    (app.source?.name ?? 'amenizer')
+      .replace(/\.[^.]+$/, '')
+      .replace(/[^\w.-]+/g, '-')
+      .replace(/^[.-]+|[.-]+$/g, '') || 'amenizer',
   );
 
   /** Cheap self-check: the file we hand over must validate under our own reader. */
