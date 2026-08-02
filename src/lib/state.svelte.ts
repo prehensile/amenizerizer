@@ -4,7 +4,6 @@ import {
   TMA_DEFAULT,
   bpmForTma,
   checkRom,
-  decodeSample,
   loopSecondsForTma,
   readTables,
   sampleRateForTma,
@@ -84,11 +83,6 @@ class AppState {
     if (!this.rom || !p) return 0;
     return diffRanges(this.rom, p).reduce((n, r) => n + (r.end - r.start), 0);
   });
-
-  /** What the stock ROM currently holds, for A/B against a new encode. */
-  get romSample(): Float32Array | null {
-    return this.rom ? decodeSample(this.rom) : null;
-  }
 
   loadRom(bytes: Uint8Array, name: string): void {
     const title = readTitle(bytes);

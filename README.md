@@ -62,8 +62,8 @@ way they would on hardware:
 | **Select** + Up/Down | retunes on the fly |
 
 **5. Export.** **Download .gb** gives you the cartridge. You can also save the
-encoded sample as a WAV to hear exactly what got written, save a render of the
-engine's output, or extract whatever sample is currently in the ROM.
+encoded sample as a WAV to hear exactly what got written, or save a render of the
+engine's output.
 
 Load the `.gb` in an emulator, or write it to a flash cart. Only the sample, the
 slice tables and — if you asked for it — the playback rate are changed; the rest

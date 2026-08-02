@@ -58,11 +58,6 @@
     });
     download(encodeWav(r.samples, r.sampleRate), `amenizer-${baseName}-engine.wav`, 'audio/wav');
   }
-
-  function saveRomSample() {
-    const s = app.romSample;
-    if (s) download(encodeWav(s, app.sampleRate), 'amenizer-rom-sample.wav', 'audio/wav');
-  }
 </script>
 
 <Panel step="5" title="Export" disabled={!app.loaded}>
@@ -70,7 +65,6 @@
     <button class="primary" onclick={saveRom} disabled={!patched}>Download .gb</button>
     <button onclick={saveEncodedWav} disabled={!app.encoded}>Encoded sample (WAV)</button>
     <button onclick={saveEnginewav} disabled={!patched}>Engine render (WAV)</button>
-    <button onclick={saveRomSample} disabled={!app.rom}>Extract ROM's current sample</button>
   </div>
 
   {#if verified}
