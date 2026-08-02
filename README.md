@@ -4,9 +4,9 @@
 
 Injects a sample into [nitro2k01's Amenizer](https://blog.gg8.se/wordpress/2013/02/11/gameboy-project-week-6-can-i-have-an-a-men).
 
-*Amenizer* is a 2013 homebrew Game Boy ROM by nitro2k01: a sample masher with 
+*Amenizer* is a 2013 homebrew Game Boy ROM: a sample masher with 
 no menus and no screen, just a looped sample of the Amen breakbeat and some
-controls for mashing and rearranging the loop in real time. 
+controls for mashing and rearranging the loop in real time. It's really fun :)
 
 It's possible to replace the Amen loop in the ROM with any sample you like,
 via a little sample conversion and ROM hacking. The browser app in this repo 
@@ -136,11 +136,13 @@ agents.
 you patch it. All the interesting decisions in the cartridge are theirs; this
 tool just fills in the sample.
 
-[gb-amenizer-flask by
-Chiptune-Anamnesis](https://github.com/Chiptune-Anamnesis/gb-amenizer-flask) was the inspiration for Amenizerizer. It's a Flask app that
+[gb-amenizer-flask](https://github.com/Chiptune-Anamnesis/gb-amenizer-flask) by [eggstoastbacon](https://github.com/eggstoastbacon) was the inspiration for Amenizerizer. It's a Flask app that
 takes a headerless 8-bit raw loop, converts it to 4-bit and injects it into the
 ROM server-side.
 
 The breaks collection in the source panel is
 [Bag of Items: All The Breaks 1, 2, 3](https://archive.org/details/bag-of-items-all-the-breaks-1-2-3)
 on archive.org.
+
+## AI disclosure
+Amenizerizer was made using [Claude Code](https://code.claude.com/docs/en/overview).
