@@ -1,0 +1,93 @@
+# What the Amenizer ROM actually does
+
+Everything here was read out of `resources/amenizer.gb`
+(32768 bytes, md5 `fd6c84c0faf9c8b5ebd84b0351af9619`, header title `AMENIZER`,
+no MBC). The constants live in [../src/lib/gb/amenizer.ts](../src/lib/gb/amenizer.ts);
+this file is the reasoning behind them.
+
+The playback engine is 200 bytes at ROM `0x033F`–`0x0406`, copied to WRAM
+`$C000` at boot; the timer ISR is just `jp $c000`. Rebasing that block to
+`$C000` and reading it is what pins down everything below.
+
+| Property | Value | Evidence |
+|---|---|---|
+| Sample buffer | `0x4000`–`0x7FFF`, 16384 bytes | `ld hl,$4000` at `$C000` |
+| Format | 4-bit unsigned PCM, 2/byte, **high nibble first** | wave RAM semantics |
+| Total samples | 32768 | 16384 × 2 |
+| Slices | 16 × 1024 bytes (2048 samples) | `add a` ×2, `or $40` → `0x4000 + n*0x400` |
+| Reload unit | 16 bytes = 32 samples per timer IRQ | 16× `ld a,[hl+] / ld [c],a` |
+| Frames per slice | 64 | counter at `$C0C8` adds 4, wraps at 256 |
+| Slice tables | `0x3F00`–`0x3FFF`, 16 × 16 steps | `ld d,$3f; ld a,[de]`, index `(table << 4) \| step` |
+| Sample rate | `2097152 / (256 − TMA)` Hz | see below |
+| Stock rate | TMA `$AD` → **25266.892 Hz** | `ld a,$ad` at `0x0169`, operand at `0x016A` |
+| Loop length | 1.2969 s = one bar at **185.06 BPM** | 32768 / 25266.892 |
+| Slice length | 81.05 ms | 2048 / 25266.892 |
+
+## The rate trick
+
+`TAC = $06` runs the timer at 65536 Hz, so it overflows every `256 − TMA` ticks.
+Each interrupt the engine writes `NR33 = TMA` and `NR34 = $87`, making the wave
+frequency register `0x700 | TMA` — and the wave channel steps at
+`2097152 / (2048 − freq)`, where `2048 − (0x700 | TMA) = 256 − TMA`. Both sides
+share one divisor, which is what keeps the wave-RAM reload locked to the
+waveform. Changing TMA retunes the sample and the reload together, which is why
+the app can expose it as a single BPM control.
+
+## Controls
+
+Joypad is assembled at `Call_000_0285` as `[Start Select B A | Down Up Left Right]`,
+1 = pressed.
+
+- **D-pad alone** → `table_select = held & 0x0F`, stored at `$C0CC`. The table
+  index *is* the d-pad bitmask (bit 3 Down, 2 Up, 1 Left, 0 Right). Start forces
+  identity.
+- **Select + Up/Down** → nudges TMA (pitch), clamped to `1..$E1`.
+- **A + Left/Right** → decay envelope. Self-modifies the `jr` operand at `$C092`
+  to skip 0–4 `add hl,hl`, changing how fast `NR50` ramps down.
+- **B + Up/Down** → the repeater. Adjusts the depth in `$C0CD` (clamped 1..3),
+  which self-modifies the mask at `$C056` (the operand of `and $7F`). The
+  routine builds it with `ld a,$01`, `d - 1` doublings and a `cpl`, so depth `d`
+  clears **bit `d-1`** of the pointer's high byte and playback folds back every
+  `256 << (d-1)` bytes. This is the granular/stutter effect.
+
+  The mask hits the *absolute* high byte, not an offset within the slice. At
+  depth 3 that means slice 1 (`$4400`) gets its bit 2 cleared and jumps to
+  `$40xx` — so the repeater starts dragging in *other* slices rather than
+  looping the current one. Faithful, not a bug.
+
+## Frame order
+
+Boot state is `$C0C8 = $FC`, `$C0C9 = $0F`, pointer operand `$4000`. The first
+frame therefore plays 32 samples from `0x4000` *before* the sequencer picks a
+slice — the "pre-roll frame".
+
+Per frame the order is: copy 16 bytes using the **previous** pointer, advance
+and mask the pointer, *then* tick the sequencer. Reordering changes the output,
+so both engine implementations follow it exactly.
+
+## Corrections to the handoff brief
+
+[../reference/amenizer-romhack-notes.md](../reference/amenizer-romhack-notes.md)
+is the original project brief. It is wrong on three points, all re-verified
+against the ROM before any code was written, and all now encoded as tests in
+[../src/lib/gb/rom.test.ts](../src/lib/gb/rom.test.ts). Read the brief for
+history, not for facts.
+
+**1. This build is not silent.** The brief says "there is no PCM sample data
+anywhere in the ROM" and calls this the "silent/empty build". Its scan stopped
+at `0x3EFF`. There is a full 16 KiB breakbeat at `0x4000`–`0x7FFF` — the entire
+upper half of the cartridge. Its nibble histogram is a bell curve centred on 7/8
+(the 4-bit midpoint), and per-slice RMS peaks on slices 0, 4, 8 and 9 — kick and
+snare on beats 1, 2-and, 3 and 3-and. There was never any need to source a
+"preloaded build".
+
+**2. `0x0407`–`0x3EFF` is not the sample buffer.** It is unused zero padding,
+about 15 KiB of free space. The code ends at `0x0406`.
+
+**3. The sample format is confirmed, not inferred.** The brief flagged 4-bit
+nibble PCM as a guess to check before writing an encoder. It is correct, and the
+nibble order (high first) is now pinned by test.
+
+[../resources/amenizer-embedded-sample.wav](../resources/amenizer-embedded-sample.wav)
+is the stock break extracted at its native rate — the fastest way to hear
+correction #1, and a useful ear-check for any encoder change.

@@ -14,7 +14,7 @@ Svelte 5 + TypeScript + Vite, tested with Vitest.
 
 ```bash
 npm run dev      # http://localhost:5173
-npm test         # 89 tests, ~1.4s, no browser needed
+npm test         # 90 tests, ~1.4s, no browser needed
 npm run check    # svelte-check
 npm run build    # svelte-check + static bundle into dist/
 ```
@@ -44,13 +44,16 @@ disassembly evidence in its header comment. Do not hardcode these elsewhere.
 | Loop | 32768 samples = 1.2969 s = one bar at 185.06 BPM |
 | TMA range | clamped `1..0xE1`, in the ROM *and* in the patcher |
 
+The full engine write-up — rate trick, all four button modes, frame order — is
+[notes/rom-behaviour.md](notes/rom-behaviour.md). Read it before changing anything
+under `src/lib/gb` or `src/lib/engine`.
+
 [reference/amenizer-romhack-notes.md](reference/amenizer-romhack-notes.md) is the
 original handoff brief and is **wrong on three points** — this build is not silent,
 `0x0407`–`0x3EFF` is unused padding not the sample buffer, and the format is now
 confirmed rather than inferred. Read it for history, not for facts. The corrections
-and the full engine write-up (rate trick, all four button modes) are in
-[README.md](README.md); the corrections are also encoded as tests in
-[src/lib/gb/rom.test.ts](src/lib/gb/rom.test.ts).
+are written up in [notes/rom-behaviour.md](notes/rom-behaviour.md) and encoded as
+tests in [src/lib/gb/rom.test.ts](src/lib/gb/rom.test.ts).
 
 If you make a new claim about ROM behaviour, cite the address you read it from in a
 comment, the way the existing code does — that convention is what keeps this
@@ -167,6 +170,23 @@ imported by Node tests.
   [encode.ts](src/lib/audio/encode.ts) and [state.svelte.ts](src/lib/state.svelte.ts),
   and must stay in step; a test pins the encoder's set. Tests that assert gain staging
   pass `highPassHz: 0, drive: 1` to get a neutral chain.
-- README has a **Tuning a noisy sample** section aimed at users, mirrored as a
-  collapsed `<details>` block in [EncodePanel.svelte](src/components/EncodePanel.svelte).
-  If the encode defaults change, all four places need updating.
+- README has a **Sounds noisy?** section aimed at users, mirrored as a collapsed
+  `<details>` block in [EncodePanel.svelte](src/components/EncodePanel.svelte). If the
+  encode defaults change, five places need updating: those two, `encode.ts`,
+  `state.svelte.ts`, and the rationale in [notes/development.md](notes/development.md).
+
+## Where documentation lives
+
+Four audiences, kept apart on purpose. Put new writing in the right one rather than
+letting any of them grow into a catch-all again.
+
+| File | Audience | Contains |
+|---|---|---|
+| [README.md](README.md) | someone who found the app | what it is, how to use it, how to run it locally. No addresses, no disassembly, no repo history. |
+| [notes/rom-behaviour.md](notes/rom-behaviour.md) | anyone touching the ROM code | the disassembly write-up and the corrections to the handoff brief |
+| [notes/development.md](notes/development.md) | anyone wondering "why is it like this" | the decisions and their reasoning, especially the ones that look wrong |
+| CLAUDE.md (this file) | you | rules, invariants, and the things that break silently |
+
+The README used to carry all four and was unreadable for it. If a fact belongs in
+more than one, keep the user-facing phrasing in README and the reasoning in `notes/`,
+and cross-link rather than duplicating.
