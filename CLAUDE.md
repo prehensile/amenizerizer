@@ -4,7 +4,7 @@ Guidance for Claude Code working in this repo.
 
 ## What this is
 
-**AmenizerizerJs** — a fully client-side browser tool that injects a user's breakbeat
+**Amenizerizer** — a fully client-side browser tool that injects a user's breakbeat
 into nitro2k01's 2013 Game Boy sample masher, *Amenizer*. Load a loop, audition it
 through a re-implementation of the ROM's playback engine driven by a virtual d-pad,
 download a working `.gb`. No server, no upload; the stock ROM ships as an app asset
