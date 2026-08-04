@@ -55,7 +55,7 @@
           target="_blank"
           rel="noopener noreferrer"
         >nitro2k01's Amenizer</a>
-        Game Boy sample masher.
+        Game Boy sample masher. Source available <a href="https://github.com/prehensile/amenizerizer">here</a>.
       </p>
     </div>
     {#if app.encoding}<span class="muted mono">encoding…</span>{/if}
