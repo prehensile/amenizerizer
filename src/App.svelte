@@ -47,7 +47,7 @@
 <main>
   <header class="top">
     <div>
-      <h1>Amenizerizer<span class="accent">Js</span></h1>
+      <h1>Amenizerizer</h1>
       <p class="muted">
         Inject a sample into
         <a
@@ -55,7 +55,12 @@
           target="_blank"
           rel="noopener noreferrer"
         >nitro2k01's Amenizer</a>
-        Game Boy sample masher. Source available <a href="https://github.com/prehensile/amenizerizer">here</a>.
+        Game Boy sample masher. Source available
+        <a
+          href="https://github.com/prehensile/amenizerizer"
+          target="_blank"
+          rel="noopener noreferrer"
+        >here</a>.
       </p>
     </div>
     {#if app.encoding}<span class="muted mono">encoding…</span>{/if}
@@ -84,7 +89,9 @@
     gap: 16px;
     margin-bottom: 22px;
   }
+  /* Fill the row so the header spans main's width and 'encoding…' lands right. */
+  .top > div { flex: 1; }
   h1 { font-size: 22px; }
-  .top p { margin: 6px 0 0; font-size: 13px; max-width: 60ch; }
+  .top p { margin: 6px 0 0; font-size: 13px; }
   .panels { display: flex; flex-direction: column; gap: 14px; }
 </style>
