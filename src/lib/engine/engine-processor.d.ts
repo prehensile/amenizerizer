@@ -16,8 +16,10 @@ export interface Engine {
   ptr: number;
   counter: number;
   step: number;
+  sliceStart: boolean;
   startFrame(): void;
   next(): number;
+  syncPulse(): boolean;
 }
 
 export function createEngine(rom: Uint8Array, tables: Uint8Array): Engine;

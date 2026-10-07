@@ -61,6 +61,13 @@ way they would on hardware:
 | **A** + Left/Right | shortens or lengthens the decay on each slice |
 | **Select** + Up/Down | retunes on the fly |
 
+**Sync out** turns the output into a clock for other gear: the left channel
+carries a pulse twice per beat, the convention Pocket Operators and Korg Volcas
+follow, and the right carries the music in mono. Use a wired stereo cable, put
+the other device in a sync-in mode, and turn the volume up. The clock speeds up
+and slows down with retuning. It only exists in the browser — the downloaded
+cartridge has no sync.
+
 **5. Export.** **Download .gb** gives you the cartridge. You can also save the
 encoded sample as a WAV to hear exactly what got written, or save a render of the
 engine's output.

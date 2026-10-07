@@ -16,6 +16,12 @@ const FRAME_BYTES = 16;
 const FRAME_SAMPLES = 32;
 
 /**
+ * Sync out, Pocket Operator / Volca style: two pulses per quarter note, i.e.
+ * one on every even slice of the 16-slice bar. 15 ms is Korg's pulse width.
+ */
+const SYNC_PULSE_SECONDS = 0.015;
+
+/**
  * The engine as a plain object so tests can drive it without an AudioContext.
  * `params` is mutated from outside between calls to `next()`.
  */
@@ -32,10 +38,18 @@ export function createEngine(rom, tables) {
     base: SAMPLE_BASE,
     gain: 1,
     frameIdx: FRAME_SAMPLES, // forces a frame load on the first sample
+    /** The sequencer ticked during the last frame load. */
+    ticked: false,
+    /** The current frame is the first of a slice. */
+    sliceStart: false,
 
     /** One frame boundary: 16 bytes to wave RAM, advance, then sequence. */
     startFrame() {
       this.base = this.ptr;
+      // A tick only repoints `ptr`; the new slice starts sounding one frame
+      // later, when that pointer becomes `base`.
+      this.sliceStart = this.ticked;
+      this.ticked = false;
       this.gain = nr50Gain(this.step, this.counter, this.params.envelope);
 
       const mask =
@@ -49,6 +63,7 @@ export function createEngine(rom, tables) {
         this.step = (this.step + 1) & 0x0f;
         const slice = this.tables[((this.params.tableSelect & 0x0f) << 4) | this.step] & 0x0f;
         this.ptr = SAMPLE_BASE + slice * SLICE_BYTES;
+        this.ticked = true;
       }
     },
 
@@ -62,6 +77,16 @@ export function createEngine(rom, tables) {
       const b = this.rom[(this.base + (i >> 1)) & 0xffff];
       const nib = i & 1 ? b & 0x0f : b >> 4;
       return ((nib - 7.5) / 8) * this.gain;
+    },
+
+    /**
+     * Whether the sample `next()` just returned should start a sync pulse: the
+     * first sample of an even step's slice. Reads the sequencer, not the
+     * pointer, so the repeater never disturbs the clock, and a retune moves
+     * the pulses with the tempo.
+     */
+    syncPulse() {
+      return this.frameIdx === 1 && this.sliceStart && (this.step & 1) === 0;
     },
   };
 }
@@ -87,31 +112,47 @@ if (typeof registerProcessor === 'function') {
       this.cur = 0;
       this.running = true;
       this.reportedStep = -1;
+      this.sync = false;
+      this.pulseLeft = 0;
+      this.pulseLen = Math.round(SYNC_PULSE_SECONDS * sampleRate);
 
       this.port.onmessage = ({ data }) => {
         if (data.rom) this.engine.rom = new Uint8Array(data.rom);
         if (data.tables) this.engine.tables = new Uint8Array(data.tables);
         if (data.tma !== undefined) this.tma = data.tma;
         if (data.params) this.engine.params = data.params;
+        if (data.sync !== undefined) this.sync = data.sync;
         if (data.stop) this.running = false;
       };
     }
 
+    /**
+     * Stereo out. Normally both channels carry the music; with sync on, the
+     * left carries the clock pulse and the right the music, which is what a
+     * Pocket Operator's sync-in modes expect on the tip and ring.
+     */
     process(_inputs, outputs) {
-      const out = outputs[0][0];
-      if (!out) return this.running;
+      const [left, right] = outputs[0];
+      if (!left || !right) return this.running;
 
       // Zero-order hold from the engine rate up to the context rate, which is
       // also what the hardware does before its own analogue filtering.
       const engineRate = 2097152 / (256 - this.tma);
       const inc = engineRate / sampleRate;
 
-      for (let i = 0; i < out.length; i++) {
-        out[i] = this.cur;
+      for (let i = 0; i < right.length; i++) {
+        right[i] = this.cur;
+        if (this.sync) {
+          left[i] = this.pulseLeft > 0 ? 1 : 0;
+          if (this.pulseLeft > 0) this.pulseLeft--;
+        } else {
+          left[i] = this.cur;
+        }
         this.phase += inc;
         while (this.phase >= 1) {
           this.phase -= 1;
           this.cur = this.engine.next();
+          if (this.engine.syncPulse()) this.pulseLeft = this.pulseLen;
         }
       }
 

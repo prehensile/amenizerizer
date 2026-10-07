@@ -58,6 +58,42 @@ describe('live engine matches the offline simulator', () => {
   });
 });
 
+describe('sync out', () => {
+  function pulses(params: Record<string, unknown>, count: number): number[] {
+    const engine = createEngine(rom, flat);
+    Object.assign(engine.params, params);
+    const at: number[] = [];
+    for (let i = 0; i < count; i++) {
+      engine.next();
+      if (engine.syncPulse()) at.push(i);
+    }
+    return at;
+  }
+
+  // Two bars: after the 32-sample pre-roll, one pulse every two slices.
+  const expected = Array.from({ length: 16 }, (_, k) => 32 + k * 2 * 2048);
+
+  it('pulses on every even slice, two per quarter note', () => {
+    expect(pulses({}, 2 * 16 * 2048 + 32)).toEqual(expected);
+  });
+
+  it('keeps time whatever the table, repeater or decay are doing', () => {
+    expect(pulses({ tableSelect: 5, envelope: 0, repeat: 3 }, 2 * 16 * 2048 + 32)).toEqual(
+      expected,
+    );
+  });
+
+  it('lands on the first sample of the slice the sequencer picked', () => {
+    const engine = createEngine(rom, flat);
+    engine.params.tableSelect = 9;
+    for (let i = 0; i < 32 + 3 * 2 * 2048; i++) engine.next();
+    const b = engine.next();
+    expect(engine.syncPulse()).toBe(true);
+    const slice = flat[(9 << 4) | engine.step];
+    expect(b).toBe((rom[0x4000 + slice * 1024] >> 4) / 8 - 7.5 / 8);
+  });
+});
+
 describe('pad control scheme', () => {
   it('uses the raw D-pad bitmask as the table index', () => {
     const p = new Pad();

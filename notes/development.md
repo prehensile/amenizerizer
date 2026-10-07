@@ -99,6 +99,24 @@ are fiddly enough to be worth unit-testing, and neither needs a DOM. The general
 rule that fell out: non-trivial arithmetic goes in `src/lib`, and anything
 browser-only goes behind a named adapter module so the rest stays testable.
 
+## Sync out, and why there is no sync in
+
+The worklet can put a Pocket Operator / Volca clock on the left channel (two
+pulses per quarter note, 15 ms wide) with the music on the right. Pulses come
+from the sequencer step, not the sample pointer, so the repeater never disturbs
+the clock and retuning moves it with the tempo. They land on the first sample of
+each even slice — one frame *after* the sequencer tick, because a tick only
+repoints `ptr` and the new slice sounds when that becomes the next frame's base.
+
+Following an external clock was ruled out. Tempo is set by TMA alone, in steps
+of roughly 1.2% near the stock value, so the engine cannot lock to an arbitrary
+tempo without resampling or retiming steps — and either would make the preview
+stop behaving like the cartridge, which has no clock input anyway.
+
+The `SYNC_PULSE_SECONDS` constant and the output routing live only in the
+worklet; `simulate.ts` has no equivalent because it renders audio, not a clock.
+The engine-agreement tests still cover every audio sample.
+
 ## Remote sources: archive.org and nothing else
 
 The source panel can browse archive.org because `archive.org/metadata/<id>` and
