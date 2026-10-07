@@ -30,7 +30,13 @@ export class LiveEngine {
     return this.node !== null;
   }
 
-  async start(rom: Uint8Array, tables: number[][], tma: number, params: LiveParams) {
+  async start(
+    rom: Uint8Array,
+    tables: number[][],
+    tma: number,
+    params: LiveParams,
+    sync = false,
+  ) {
     const ctx = audioContext();
     await ctx.resume();
     modulePromise ??= ctx.audioWorklet.addModule(workletUrl);
@@ -39,7 +45,7 @@ export class LiveEngine {
     this.stop();
     this.node = new AudioWorkletNode(ctx, 'amenizer-engine', {
       numberOfInputs: 0,
-      outputChannelCount: [1],
+      outputChannelCount: [2],
       processorOptions: {
         rom: rom.slice().buffer,
         tables: flatten(tables).buffer,
@@ -50,16 +56,24 @@ export class LiveEngine {
       if (typeof data?.step === 'number') this.onStep?.(data.step);
     };
     this.node.connect(ctx.destination);
-    this.update({ params });
+    this.update({ params, sync });
   }
 
-  update(msg: { rom?: Uint8Array; tables?: number[][]; tma?: number; params?: LiveParams }) {
+  update(msg: {
+    rom?: Uint8Array;
+    tables?: number[][];
+    tma?: number;
+    params?: LiveParams;
+    /** Clock pulse on the left channel, music on the right. */
+    sync?: boolean;
+  }) {
     if (!this.node) return;
     this.node.port.postMessage({
       rom: msg.rom ? msg.rom.slice().buffer : undefined,
       tables: msg.tables ? flatten(msg.tables).buffer : undefined,
       tma: msg.tma,
       params: msg.params,
+      sync: msg.sync,
     });
   }
 

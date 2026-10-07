@@ -6,13 +6,15 @@
   import { pad } from '../lib/pad.svelte';
   import { LiveEngine } from '../lib/engine/live';
   import { simulate } from '../lib/engine/simulate';
-  import { SLICE_COUNT, dpadLabel, sampleRateForTma } from '../lib/gb/amenizer';
+  import { SLICE_COUNT, bpmForTma, dpadLabel, sampleRateForTma } from '../lib/gb/amenizer';
   import * as playback from '../lib/playback';
 
   const engine = new LiveEngine();
   let running = $state(false);
   let starting = $state(false);
   let step = $state(-1);
+  /** Pocket Operator sync out: clock on the left channel, music on the right. */
+  let sync = $state(false);
 
   engine.onStep = (s) => (step = s);
 
@@ -48,11 +50,12 @@
     try {
       // Any pre-rendered preview would fight the live node for the output.
       playback.stop();
-      await engine.start(rom, app.tables, pad.tma, {
+      const params = {
         tableSelect: pad.tableSelect,
         envelope: pad.envelope,
         repeat: pad.repeat,
-      });
+      };
+      await engine.start(rom, app.tables, pad.tma, params, sync);
       running = true;
     } finally {
       starting = false;
@@ -83,6 +86,11 @@
     if (running) engine.update({ rom, tables });
   });
 
+  $effect(() => {
+    const on = sync;
+    if (running) engine.update({ sync: on });
+  });
+
   // Seed pitch from whatever the ROM boots with.
   $effect(() => {
     pad.tma = app.effectiveTma;
@@ -93,6 +101,9 @@
 
 <Panel step="4" title="Play">
   {#snippet actions()}
+    <label class="sync" title="Clock pulse on the left channel, music on the right">
+      <input type="checkbox" bind:checked={sync} /> Sync out
+    </label>
     <button class="primary" onclick={toggle} disabled={starting || !app.loaded}>
       {running ? 'Stop' : starting ? 'Starting…' : 'Play'}
     </button>
@@ -127,6 +138,10 @@
       <span class="mono">{sampleRateForTma(pad.tma).toFixed(0)} Hz</span>
     </div>
     <div>
+      <span class="lbl">Tempo</span>
+      <span class="mono">{bpmForTma(pad.tma).toFixed(1)} BPM</span>
+    </div>
+    <div>
       <span class="lbl">Decay</span>
       <span class="mono" class:accent={pad.envelope !== null}>
         {pad.envelope === null ? 'off' : `shift ${pad.envShift}`}
@@ -144,6 +159,18 @@
     Hold a direction to rearrange the slices. Hold <b>B</b> with Up/Down for the repeater,
     <b>A</b> with Left/Right for the decay, <b>Select</b> with Up/Down to retune.
   </p>
+
+  {#if sync}
+    <p class="muted tip">
+      <b>Sync out</b> puts a clock on the left channel — two pulses per beat, the
+      Pocket Operator and Volca standard — and the music in mono on the right. Run a
+      stereo cable into the follower and set it to sync in (on a Pocket Operator,
+      hold <b>Function</b> and press <b>BPM</b> to step through the <code>SY</code>
+      modes). Wired only: Bluetooth delay wrecks the timing. The clock follows
+      retuning, so the follower speeds up and slows down with you. Phone or computer
+      volume needs to be high for the pulse to register.
+    </p>
+  {/if}
 </Panel>
 
 <style>
@@ -164,5 +191,7 @@
   .readout .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .readout .wide .mono { overflow: visible; white-space: normal; }
   .tip { margin: 12px 0 0; font-size: 12px; }
+  .sync { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); }
+  .sync input { accent-color: var(--accent); }
   b { color: var(--text); }
 </style>
