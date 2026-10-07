@@ -57,8 +57,8 @@ Joypad is assembled at `Call_000_0285` as `[Start Select B A | Down Up Left Righ
 
 ### Things the web app does not model
 
-These came out of reimplementing the whole ROM ([../rom/](../rom/)), not just
-the engine. They are real behaviour, but none of them reaches the patched
+These came out of reimplementing the whole ROM
+([amenizer-gbdk](https://github.com/prehensile/amenizer-gbdk)), not just the engine. They are real behaviour, but none of them reaches the patched
 sample.
 
 - **Start** (pressed with nothing else held, `0x0262`) toggles playback. Stop

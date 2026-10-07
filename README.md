@@ -126,14 +126,9 @@ dependencies, so they can be tested directly against the real cartridge. The
 engine exists twice over — once for offline rendering and once as an
 AudioWorklet for live play — and a test asserts the two agree sample for sample.
 
-There is also a from-source rebuild of the cartridge itself, in C with
-[GBDK-2020](https://github.com/gbdk-2020/gbdk-2020), in [rom/](rom/). It takes
-its break from an existing `.gb`, so it can rebuild one this app made:
-
-```bash
-cd rom
-make GBDK_HOME=/path/to/gbdk SOURCE_ROM=my-amenizer.gb   # -> build/amenizer.gb
-```
+The cartridge itself has been rebuilt from source, in C with GBDK-2020, at
+[amenizer-gbdk](https://github.com/prehensile/amenizer-gbdk). It takes its break from an existing `.gb`, so it can
+rebuild one this app made.
 
 Notes on how the cartridge works and how this was built are in
 [notes/](notes/); [CLAUDE.md](CLAUDE.md) is the working brief for AI coding

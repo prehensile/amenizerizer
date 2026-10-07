@@ -70,7 +70,6 @@ src/lib/           state.svelte.ts (the `app` singleton) · pad.svelte.ts (the `
                    selection.ts · touch.ts (pad hit-testing) · playback.ts
 src/lib/sources/   archive.ts (archive.org browsing)
 src/components/    Svelte 5 UI
-rom/               GBDK-2020 rebuild of the cartridge (C + one asm block); not part of npm
 ```
 
 **Everything under `src/lib` except `load.ts`, `playback.ts`, `live.ts` and the
@@ -138,22 +137,11 @@ imported by Node tests.
 - Panels are numbered steps 1–5 wrapped in [Panel.svelte](src/components/Panel.svelte);
   styling is CSS custom properties from [src/app.css](src/app.css), dark only.
 
-## The GBDK rebuild (`rom/`)
-
-A C reimplementation of the whole ROM, built with `make GBDK_HOME=...` and
-checked against the original with `make compare` (PyBoy + numpy). Neither runs in
-CI or touches the web app. Rules:
-
-- The wave-RAM reload in `timer_isr` stays assembly, instruction for instruction
-  with `$C005`–`$C04D`. Its length is audible; C makes it twice as long.
-- The VBlank logic writes `table_sel`, `ptr_mask` and `envelope_on` zero-first on
-  purpose — it mirrors a race in the original. Don't collapse them to one write.
-- Engine changes made for the web app's model don't automatically apply here, or
-  vice versa; both are read from the same disassembly, so cite the address.
-- Why it is built this way, and how to read `compare.py`'s numbers:
-  [notes/development.md](notes/development.md).
-
 ## Other things worth knowing
+
+- The whole ROM is reimplemented in C at [amenizer-gbdk](https://github.com/prehensile/amenizer-gbdk). It reads
+  the same ground truth as `src/lib/gb` and `src/lib/engine`, so a correction to
+  [notes/rom-behaviour.md](notes/rom-behaviour.md) may need making there too.
 
 - **archive.org is the only remote source that works.** `archive.org/metadata/<id>` and
   `/download/` send `Access-Control-Allow-Origin: *` and keep it across the 302. Sample
