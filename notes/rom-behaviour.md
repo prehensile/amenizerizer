@@ -55,6 +55,55 @@ Joypad is assembled at `Call_000_0285` as `[Start Select B A | Down Up Left Righ
   `$40xx` — so the repeater starts dragging in *other* slices rather than
   looping the current one. Faithful, not a bug.
 
+### Things the web app does not model
+
+These came out of reimplementing the whole ROM
+([amenizer-gbdk](https://github.com/prehensile/amenizer-gbdk)), not just the engine. They are real behaviour, but none of them reaches the patched
+sample.
+
+- **Start** (pressed with nothing else held, `0x0262`) toggles playback. Stop
+  (`0x01B0`) turns the wave DAC off and drops IE to VBlank only. Resume re-runs
+  the init at `0x0175`, which resets the counter to `$FC`, the step to `$0F`
+  and the repeat depth to 1, but not the pointer or TMA. So after a resume the
+  pre-roll frame plays from wherever the pointer was left, not from `$4000`.
+- **Start + Select** (Start pressed while Select is the only other button
+  held) XORs `$2F` into `$C043`, toggling it between `nop` and `cpl`. That byte
+  sits between `ldh a,[rTMA]` and `ldh [rNR33],a`, so as `cpl` the wave
+  channel gets `0x700 | ~TMA` and steps at `2097152 / (TMA + 1)` while the
+  reload still runs at `2097152 / (256 − TMA)`. At stock TMA the wave is
+  slowed to about half speed and retriggered before it finishes each frame —
+  lower and grainier, same tempo.
+- **Link-port sync.** Each slice writes `SB = 0, SC = $83` six times (internal
+  clock, start transfer): on the slice boundary (`$C061`) and at counter values
+  `$14 $28 $3C $50 $64` (`$C0A1`–`$C0B5`). Six per sixteenth is 24 per
+  quarter note, MIDI clock's rate. They are not evenly spaced: the counter
+  runs to 252 in steps of 4, so all six land in the first 25 of the 64 frames.
+  Whether a slave device copes with that has not been tested.
+- **The screen is a CPU meter.** Nothing touches LCDC; the timer ISR sets
+  `BGP = $FF` on entry (`0x027E`) and `$00` on exit (`$C0B9`), so the boot
+  screen turns white with black bands wherever the ISR is running.
+- **D-pad edges.** After building the newly-pressed byte, `0x02C8` clears its
+  d-pad bits if any direction was already held. A direction press only counts
+  as a press when no other direction was down — which matters for B + Up/Down
+  and A + Left/Right.
+- **Decay skip clamp.** A + Left increments `$C092` only while the result is
+  below 4 (`cp $04` at `0x023C`), so the boot value 4 (no doublings) cannot be
+  returned to once A + Right has lowered it.
+- **Zero-then-store races.** The VBlank handler re-enables interrupts at
+  `0x01C2` and then writes three engine inputs in two steps: `$C0CC` gets 0
+  then the d-pad (`0x02B8`, `0x02C5`), `$C056` gets `$FF` then the repeater
+  mask (`0x01EC`, `0x021F`), `$C090` gets `$0E` then `$00` (`0x0222`,
+  `0x022F`). A timer IRQ landing between the two writes sees the first value.
+  For the table select that means one slice played from the identity table;
+  it was caught in emulation at frame 1442 of the comparison run, where a
+  slice-boundary IRQ fired at LY 145 and loaded slice 12 under table 8. The
+  window is ~50 cycles a frame, so it is rare, but it is the original's
+  behaviour and the reimplementation keeps it.
+- The copy's 16th byte is `ld a,[hl+] ; nop ; nop ; ld [c],a` (`0x0378`) —
+  two spare cycles inside the muted window. Init also writes `$01` to `$2000`
+  (an MBC register, on a cart with no MBC) and triggers channel 1 with its DAC
+  off; both are inert.
+
 ## Frame order
 
 Boot state is `$C0C8 = $FC`, `$C0C9 = $0F`, pointer operand `$4000`. The first

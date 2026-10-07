@@ -139,6 +139,10 @@ imported by Node tests.
 
 ## Other things worth knowing
 
+- The whole ROM is reimplemented in C at [amenizer-gbdk](https://github.com/prehensile/amenizer-gbdk). It reads
+  the same ground truth as `src/lib/gb` and `src/lib/engine`, so a correction to
+  [notes/rom-behaviour.md](notes/rom-behaviour.md) may need making there too.
+
 - **archive.org is the only remote source that works.** `archive.org/metadata/<id>` and
   `/download/` send `Access-Control-Allow-Origin: *` and keep it across the 302. Sample
   hosts without CORS cannot be added client-side, whatever the app does.

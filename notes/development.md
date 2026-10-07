@@ -122,6 +122,13 @@ CSP. For the same reason the worklet file is import-free plain JS and is
 referenced with `new URL(..., import.meta.url)` — a `?url` import does not
 survive the production build.
 
+## The ROM, rebuilt from source
+
+The whole cartridge — not just the engine this app models — was reimplemented
+in C with GBDK-2020, and now lives in its own repo,
+[amenizer-gbdk](https://github.com/prehensile/amenizer-gbdk). Its reasoning is written up there. What it turned up
+about the original went into [rom-behaviour.md](rom-behaviour.md).
+
 ## Documentation split
 
 This repo previously had one README carrying all of the above: user
