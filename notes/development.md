@@ -122,6 +122,60 @@ CSP. For the same reason the worklet file is import-free plain JS and is
 referenced with `new URL(..., import.meta.url)` — a `?url` import does not
 survive the production build.
 
+## The ROM, rebuilt from source
+
+[../rom/](../rom/) is a GBDK-2020 reimplementation of the whole cartridge, not
+just the engine the web app models: init, the VBlank control handler,
+pause/resume, the NR33 inversion, the link-port sync bytes and the BGP CPU
+meter. It is a reconstruction for reading and building on, not a byte match —
+GBDK's crt0 owns the low ROM, so nothing lands at the original's code
+addresses and the web app cannot patch the result. Instead the break, slice
+tables and boot TMA are lifted from a source cartridge at build time and the
+break and tables go back at `0x4000` and `0x3F00`, so any ROM the app has
+produced rebuilds from source with its own break.
+
+Choices that look odd:
+
+- **The wave-RAM reload is inline assembly.** The channel outputs nothing
+  between `NR51 = $BB` and `NR51 = $FF`, and that gap, ~790 times a second, is
+  part of the original's sound. SDCC's unrolled C copy made it about twice as
+  long, which the emulator comparison caught as a 25% louder buzz before a
+  single sample of the break differed. Everything around the reload is C.
+- **The control logic runs in the main loop after `wait_vbl_done()`**, not in
+  a VBlank ISR. The original's VBlank handler re-enables interrupts at once
+  so the timer can preempt it. GBDK's crt0 owns the VBlank vector (`ISR_VECTOR`
+  refuses it), and running the logic from the main loop gets the same
+  preemption without depending on how crt0 dispatches. OAM DMA is switched
+  off to keep crt0's own VBlank ISR short, since it delays the timer IRQ.
+- **The original's races are kept.** Three VBlank writes go zero-then-value
+  with interrupts on, and a timer IRQ in between plays a frame or a slice
+  wrong (see [rom-behaviour.md](rom-behaviour.md)). The rebuild writes in the
+  same order, so the same glitches can happen, though not at the same moments.
+- **The assets are generated as assembly, not C.** SDCC puts every `__at`
+  constant in one `_CABS` area and the linker concatenates those across
+  modules, which silently moved the tables to `0x3F03` on the first attempt.
+  An `ABS` area of our own with `.org`s does not.
+
+`rom/tools/compare.py` is the evidence it behaves the same. It runs both
+cartridges in PyBoy under one scripted 46-second session covering every
+button mode, aligns the audio per segment and correlates it. Three things
+about the method matter:
+
+- PyBoy point-samples the APU, so at 48 kHz the two programs' slightly
+  different trigger phases show up as one-sample jitter on every gap edge and
+  cap the correlation near 0.95 even when the content is identical. It runs at
+  262144 Hz (higher rates drop samples) and smooths over 16 samples first.
+- The rebuild starts playback ~29 ms later (crt0 does more than the
+  original's init), a fixed offset in *samples*, so in seconds it scales with
+  TMA. Segments are aligned one at a time, and those where TMA is ramping are
+  shown but not scored; TMA itself is compared directly instead.
+- Scored segments come out at 0.996–0.9997 apart from one at 0.9785: the
+  original's table-select race firing in that segment and not in the
+  rebuild's. The pass mark is 0.97 for that reason.
+
+Not covered by the comparison: real hardware, CGB, and whether the link-port
+bytes actually drive anything.
+
 ## Documentation split
 
 This repo previously had one README carrying all of the above: user
