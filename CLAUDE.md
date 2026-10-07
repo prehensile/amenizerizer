@@ -14,7 +14,7 @@ Svelte 5 + TypeScript + Vite, tested with Vitest.
 
 ```bash
 npm run dev      # http://localhost:5173
-npm test         # 90 tests, ~1.4s, no browser needed
+npm test         # 100 tests, ~1.4s, no browser needed
 npm run check    # svelte-check
 npm run build    # svelte-check + static bundle into dist/
 ```
@@ -67,7 +67,7 @@ src/lib/audio/     resample · quantize · process · encode · wav   (pure)
                    load.ts                                        (browser: AudioContext)
 src/lib/engine/    simulate.ts (offline) · engine-processor.js (worklet) · live.ts (main-thread handle)
 src/lib/           state.svelte.ts (the `app` singleton) · pad.svelte.ts (the `pad` singleton)
-                   selection.ts · playback.ts
+                   selection.ts · touch.ts (pad hit-testing) · playback.ts
 src/lib/sources/   archive.ts (archive.org browsing)
 src/components/    Svelte 5 UI
 ```
@@ -78,7 +78,7 @@ Vitest run the encoder, patcher and engine directly against the real ROM with no
 and no jsdom. Keep it that way — if you need a browser API, put it behind one of the
 adapter modules above rather than importing it into a testable module.
 
-Non-trivial arithmetic belongs in `src/lib`, not in a component. `selection.ts` and
+Non-trivial arithmetic belongs in `src/lib`, not in a component. `selection.ts`, `touch.ts` and
 `pad.svelte.ts` exist purely because click-division maths and joypad semantics were
 worth unit-testing.
 

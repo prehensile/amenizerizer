@@ -81,28 +81,37 @@ export class Pad {
   }
 
   press(b: Button): void {
-    if (this.is(b)) return; // ignore auto-repeat; the ROM sees one edge
-    this.held |= BTN[b];
-
-    // Edge-triggered adjustments read $C0CA (newly pressed), not $C0CB.
-    if (this.is('B')) {
-      if (b === 'Down' && this.repeatDepth < 3) this.repeatDepth++;
-      if (b === 'Up' && this.repeatDepth > 1) this.repeatDepth--;
-    }
-    if (this.is('A')) {
-      if (b === 'Left' && this.envShift < 3) this.envShift++;
-      if (b === 'Right' && this.envShift > 0) this.envShift--;
-    }
-    this.syncRamp();
+    this.set(this.held | BTN[b]);
   }
 
   release(b: Button): void {
-    this.held &= ~BTN[b];
-    this.syncRamp();
+    this.set(this.held & ~BTN[b]);
   }
 
   releaseAll(): void {
-    this.held = 0;
+    this.set(0);
+  }
+
+  /**
+   * Replace the whole held mask at once, as the ROM sees it: one joypad read
+   * per frame. Touch input arrives this way — a thumb rolling from Up into
+   * Up+Right is one change, not a release and two presses.
+   */
+  set(mask: number): void {
+    // Re-pressing something already held is no edge; this also ignores
+    // keyboard auto-repeat.
+    const pressed = mask & ~this.held;
+    this.held = mask;
+
+    // Edge-triggered adjustments read $C0CA (newly pressed), not $C0CB.
+    if (this.is('B')) {
+      if (pressed & BTN.Down && this.repeatDepth < 3) this.repeatDepth++;
+      if (pressed & BTN.Up && this.repeatDepth > 1) this.repeatDepth--;
+    }
+    if (this.is('A')) {
+      if (pressed & BTN.Left && this.envShift < 3) this.envShift++;
+      if (pressed & BTN.Right && this.envShift > 0) this.envShift--;
+    }
     this.syncRamp();
   }
 
