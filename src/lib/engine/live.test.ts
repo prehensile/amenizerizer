@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { createEngine, nr50Gain } from './engine-processor.js';
 import { simulate } from './simulate';
 import { readTables } from '../gb/amenizer';
-import { Pad } from '../pad.svelte';
+import { BTN, Pad } from '../pad.svelte';
 
 const rom = new Uint8Array(
   readFileSync(fileURLToPath(new URL('../../../resources/amenizer.gb', import.meta.url))),
@@ -110,6 +110,20 @@ describe('pad control scheme', () => {
       p.release('Up');
     }
     expect(p.repeatDepth).toBe(1);
+  });
+
+  it('treats a roll between directions as one change, not fresh presses', () => {
+    const p = new Pad();
+    p.press('B');
+    p.set(BTN.B | BTN.Down);
+    expect(p.repeatDepth).toBe(2);
+    // Rolling Down -> Down+Right -> Right -> Down+Right: Down stays held, so
+    // it only edges again after it has actually been let go.
+    p.set(BTN.B | BTN.Down | BTN.Right);
+    expect(p.repeatDepth).toBe(2);
+    p.set(BTN.B | BTN.Right);
+    p.set(BTN.B | BTN.Down | BTN.Right);
+    expect(p.repeatDepth).toBe(3);
   });
 
   it('ignores auto-repeat so one physical press is one edge', () => {

@@ -14,7 +14,7 @@ Svelte 5 + TypeScript + Vite, tested with Vitest.
 
 ```bash
 npm run dev      # http://localhost:5173
-npm test         # 100 tests, ~1.4s, no browser needed
+npm test         # 101 tests, ~1.4s, no browser needed
 npm run check    # svelte-check
 npm run build    # svelte-check + static bundle into dist/
 ```
