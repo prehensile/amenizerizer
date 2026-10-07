@@ -45,6 +45,8 @@
     }}
     onpointerup={() => up(b)}
     onpointerleave={() => pad.is(b) && up(b)}
+    onpointercancel={() => pad.is(b) && up(b)}
+    oncontextmenu={(e) => e.preventDefault()}
     aria-label={b}
     aria-pressed={pad.is(b)}
   >{glyph}</button>
@@ -86,7 +88,15 @@
     background: var(--panel-2);
     border: 1px solid var(--line);
     border-radius: 12px;
+    /* On touch screens a held thumb is a long-press: without these the browser
+       selects the glyphs, pops the copy/lookup callout, or claims the gesture
+       as a scroll and cancels the pointer mid-hold. */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
   }
+  .pad :global(button) { touch-action: none; }
   @media (max-width: 560px) {
     .pad {
       grid-template-columns: auto auto;
