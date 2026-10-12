@@ -99,6 +99,11 @@ useful with dither on, since dither noise toggles 7/8 by itself.
 
 Offline, so it uses lookahead (the attack ramp ends on the onset rather than
 starting there) and treats the buffer as circular, because the engine loops it.
+The release is an exponential (RC-discharge) curve rescaled to end at exactly
+zero, not a linear ramp: about −22 dB halfway through against −6 dB for linear.
+A linear fade holds the tail up and then drops it off a cliff; front-loading
+the drop sounds like a decay, and gets the tail under one LSB sooner, where it
+would only toggle 7/8 anyway.
 It is off by default; whether gaps should be silent is a property of the
 material, not something the chain can assume.
 

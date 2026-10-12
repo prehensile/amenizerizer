@@ -123,7 +123,7 @@ export interface GateOptions {
   attackMs?: number;
   /** How long the gate stays fully open after the last sample above threshold. */
   holdMs?: number;
-  /** Ramp-down time once the hold runs out. */
+  /** Ramp-down time once the hold runs out. See {@link releaseCurve}. */
   releaseMs?: number;
 }
 
@@ -140,11 +140,31 @@ export interface GateOptions {
  * sub-LSB signal by some dB still leaves it toggling across the midpoint.
  *
  * Offline, so lookahead is free: the open/closed decision is widened backwards
- * by the attack time and forwards by the hold time, and the gain then ramps
- * linearly between 0 and 1. The buffer is treated as circular, because the
+ * by the attack time and forwards by the hold time. The attack ramps linearly
+ * (it is half a millisecond and lands before the onset, so its shape is
+ * inaudible); the release follows {@link releaseCurve}. The buffer is treated as circular, because the
  * engine loops it — a kick on the downbeat opens the gate at the end of the
  * previous bar, and a tail at the end of the bar holds it open into the start.
  */
+/**
+ * Release steepness: the gain falls like an RC discharge, `e^(-kt)`, rescaled
+ * so it starts at exactly 1 and ends at exactly 0 rather than stepping down
+ * from a residual. At k = 5 the gain is about -22 dB halfway through. A linear
+ * fade sits at -6 dB at that point and sounds like the tail is cut off at the
+ * end; the exponential front-loads the drop, which is how decays sound
+ * natural, and gets quiet signals under one LSB sooner, where they would only
+ * toggle 7/8 anyway.
+ */
+export const RELEASE_CURVE_K = 5;
+
+/** Gain over a release, for `t` from 0 (hold just ended) to 1 (closed). */
+export function releaseCurve(t: number): number {
+  if (t <= 0) return 1;
+  if (t >= 1) return 0;
+  const end = Math.exp(-RELEASE_CURVE_K);
+  return (Math.exp(-RELEASE_CURVE_K * t) - end) / (1 - end);
+}
+
 export function noiseGate(samples: Float32Array, rate: number, options: GateOptions): Float32Array {
   const len = samples.length;
   if (len === 0) return samples.slice();
@@ -181,7 +201,7 @@ export function noiseGate(samples: Float32Array, rate: number, options: GateOpti
     // hold-then-release ramp after the last one. Both are 1 on a hit.
     const up = untilNext[i] >= attack ? 0 : 1 - untilNext[i] / attack;
     const sinceHold = sinceLast[i] - hold;
-    const down = sinceHold <= 0 ? 1 : sinceHold >= release ? 0 : 1 - sinceHold / release;
+    const down = releaseCurve(sinceHold / release);
     const g = Math.max(up, down);
     // Leave closed samples at +0 rather than writing -0 from a negative input.
     if (g > 0) out[i] = samples[i] * g;
