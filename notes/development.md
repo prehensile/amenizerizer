@@ -82,6 +82,26 @@ Because these defaults are a judgement call rather than a derivation, they are
 explained to users in the README and in a collapsed block in the encode panel,
 and they are declared in two places in code that must stay in step.
 
+## The noise gate sits after the level stages
+
+The chain is DC → high-pass → gain/normalise → soft clip → **gate** → seam fade
+→ quantise. The gate comes after everything that changes level so its threshold
+is in the same dBFS the quantiser sees; put before the soft clip, a threshold
+would mean ~6 dB more than it says at the default 2× drive.
+
+It earns its place at 4 bits for a specific reason: zero sits at 7.5 on the
+nibble grid, between two levels, so *any* low-level signal that crosses zero
+toggles 7/8 — a full-LSB buzz around −24 dBFS regardless of how quiet the input
+was. Exact zero always rounds to 8, so a closed gate is real silence. That is
+also why the closed state is gain 0 rather than a finite range: attenuating a
+sub-LSB signal leaves it crossing the midpoint just the same. It does nothing
+useful with dither on, since dither noise toggles 7/8 by itself.
+
+Offline, so it uses lookahead (the attack ramp ends on the onset rather than
+starting there) and treats the buffer as circular, because the engine loops it.
+It is off by default; whether gaps should be silent is a property of the
+material, not something the chain can assume.
+
 ## Length modes
 
 `fit` stretches a selection to exactly one bar, so slices land on sixteenths by

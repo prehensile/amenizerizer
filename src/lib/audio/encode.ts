@@ -30,6 +30,7 @@ import {
   clamp,
   fadeEdges,
   highPass,
+  noiseGate,
   normalize,
   peak,
   removeDC,
@@ -61,6 +62,12 @@ export interface EncodeOptions {
   normalizeTarget?: number;
   /** >1 engages the soft clipper. */
   drive?: number;
+  /**
+   * Noise gate threshold in dBFS, measured after gain and soft clip. null
+   * (the default) bypasses the gate. See {@link noiseGate}.
+   */
+  gateDb?: number | null;
+  gateReleaseMs?: number;
   fadeMs?: number;
   dither?: Dither;
   /** Dither amplitude in LSBs. See {@link quantizeToNibbles}. */
@@ -101,6 +108,8 @@ export function encodeSample(
     gainDb = null,
     normalizeTarget = 0.98,
     drive = 2,
+    gateDb = null,
+    gateReleaseMs = 40,
     fadeMs = 2,
     dither = 'none',
     ditherAmount = 0.35,
@@ -142,6 +151,7 @@ export function encodeSample(
   if (highPassHz > 0) buf = highPass(buf, highPassHz, rate);
   buf = gainDb === null ? normalize(buf, normalizeTarget) : applyGain(buf, 10 ** (gainDb / 20));
   if (drive > 1) buf = softClip(buf, drive);
+  if (gateDb !== null) buf = noiseGate(buf, rate, { thresholdDb: gateDb, releaseMs: gateReleaseMs });
   if (fadeMs > 0) buf = fadeEdges(buf, Math.round((fadeMs / 1000) * rate));
 
   const preClip = buf;

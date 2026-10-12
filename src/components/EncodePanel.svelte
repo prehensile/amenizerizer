@@ -172,6 +172,23 @@
       </fieldset>
 
       <fieldset>
+        <legend>Noise gate</legend>
+        <label class="check">
+          <input type="checkbox" bind:checked={app.gateEnabled} /> Gate quiet passages to silence
+        </label>
+        {#if app.gateEnabled}
+          <div class="field">
+            <label for="gate-thr">Threshold {app.gateDb} dB</label>
+            <input id="gate-thr" type="range" min="-60" max="-6" step="1" bind:value={app.gateDb} />
+          </div>
+          <div class="field">
+            <label for="gate-rel">Release {app.gateReleaseMs} ms</label>
+            <input id="gate-rel" type="range" min="5" max="300" step="5" bind:value={app.gateReleaseMs} />
+          </div>
+        {/if}
+      </fieldset>
+
+      <fieldset>
         <legend>Conditioning</legend>
         <label class="check">
           <input type="checkbox" bind:checked={app.removeDcOffset} /> Remove DC offset
@@ -241,7 +258,9 @@
         <p class="lead">Work out which noise you have</p>
         <p>
           <strong>A steady hiss, there even in the gaps</strong> — the sample is too quiet,
-          or you have turned dither on. Drive <em>up</em>, dither <em>off</em>.
+          or you have turned dither on. Drive <em>up</em>, dither <em>off</em>. If a buzz
+          remains in the gaps between hits, turn the <strong>noise gate</strong> on — with
+          dither off it turns those gaps into true silence.
         </p>
         <p>
           <strong>A crunchy, gritty texture on cymbal tails and fades</strong> — the
