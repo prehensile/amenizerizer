@@ -197,6 +197,31 @@ describe('encode pipeline', () => {
     expect(implicit.packed).not.toEqual(dithered.packed);
   });
 
+  it('leaves the gate off by default', () => {
+    const src = sine(44100, 44100, 220, 0.5);
+    const implicit = encodeSample(src, 44100, { tma: TMA_DEFAULT });
+    const off = encodeSample(src, 44100, { tma: TMA_DEFAULT, gateDb: null });
+    expect(implicit.packed).toEqual(off.packed);
+  });
+
+  it('gates low-level hiss between hits to a constant nibble', () => {
+    // The point of a gate at 4 bits: hiss that crosses zero toggles 7/8 and
+    // buzzes at a full LSB however quiet it is. Gated, it is exactly 0 -> 8.
+    const rate = 44100;
+    const src = new Float32Array(rate);
+    for (let i = 0; i < src.length; i++) src[i] = (i % 7 < 3 ? 1 : -1) * 0.01;
+    for (let i = 0; i < 2000; i++) src[i] = 0.9 * Math.sin(i / 4);
+    const opts = { tma: TMA_DEFAULT, fitMode: 'rate', fadeMs: 0 } as const;
+    const gapNibbles = (gateDb: number | null) => {
+      const q = quantizeToNibbles(encodeSample(src, rate, { ...opts, gateDb }).preQuantize, {
+        dither: 'none',
+      });
+      return new Set(q.subarray(TOTAL_SAMPLES / 2, TOTAL_SAMPLES / 2 + 4000));
+    };
+    expect(gapNibbles(null).size).toBeGreaterThan(1);
+    expect([...gapNibbles(-24)]).toEqual([8]);
+  });
+
   it('reports a noise floor consistent with 4 bits', () => {
     const r = encodeSample(sine(44100, 44100, 220), 44100, {
       tma: TMA_DEFAULT,

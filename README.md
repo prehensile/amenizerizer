@@ -90,6 +90,7 @@ If it still sounds wrong, work out which noise you have:
 | What you hear | What it is | What to do |
 |---|---|---|
 | A steady hiss, there even in the gaps | The sample is too quiet, or dither is on | Drive **up**, dither **off** |
+| A faint buzz in the gaps between hits, even with drive up | Quiet background noise flickering between the two middle steps | Turn the **noise gate** on, dither **off** |
 | A crunchy, gritty texture on cymbal tails and fades | The sixteen steps becoming audible as the sound decays | Dither **on** at 0.3–0.5, or try Noise-shaped |
 
 Chase one too hard and you summon the other. Dense, busy loops mask the grit and

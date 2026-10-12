@@ -34,6 +34,9 @@
     void app.gainDb;
     void app.normalizeTarget;
     void app.drive;
+    void app.gateEnabled;
+    void app.gateDb;
+    void app.gateReleaseMs;
     void app.fadeMs;
     void app.dither;
     void app.ditherAmount;

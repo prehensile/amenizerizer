@@ -42,6 +42,10 @@ class AppState {
   drive = $state(2);
   fadeMs = $state(2);
   removeDcOffset = $state(true);
+  // Off by default. The threshold is what it comes back at when switched on.
+  gateEnabled = $state(false);
+  gateDb = $state(-36);
+  gateReleaseMs = $state(40);
   // Off by default — see the header comment on `encodeSample`. The amount is
   // still the value dither comes back at when someone switches it on.
   dither = $state<Dither>('none');
@@ -123,6 +127,8 @@ class AppState {
         gainDb: this.autoNormalize ? null : this.gainDb,
         normalizeTarget: this.normalizeTarget,
         drive: this.drive,
+        gateDb: this.gateEnabled ? this.gateDb : null,
+        gateReleaseMs: this.gateReleaseMs,
         fadeMs: this.fadeMs,
         dither: this.dither,
         ditherAmount: this.ditherAmount,

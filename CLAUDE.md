@@ -14,7 +14,7 @@ Svelte 5 + TypeScript + Vite, tested with Vitest.
 
 ```bash
 npm run dev      # http://localhost:5173
-npm test         # 101 tests, ~1.4s, no browser needed
+npm test         # 109 tests, ~1.4s, no browser needed
 npm run check    # svelte-check
 npm run build    # svelte-check + static bundle into dist/
 ```
@@ -157,6 +157,11 @@ imported by Node tests.
   The fed-back error must be measured pre-dither or the dither leaks through
   unshaped — [encode.test.ts](src/lib/audio/encode.test.ts) pins both the sign
   and the DC null.
+- The chain order is DC → high-pass → gain → soft clip → noise gate → seam fade
+  → quantise. The gate is deliberately after drive so its threshold is measured
+  in what the quantiser sees, and it is off by default (`gateDb: null`), so it is
+  not one of the opinionated defaults. Rationale in
+  [notes/development.md](notes/development.md).
 - `fit` mode stretches a selection to exactly one bar (slices land on sixteenths,
   pitch changes); `rate` mode preserves pitch and pads/truncates.
 - [resources/amenizer-embedded-sample.wav](resources/amenizer-embedded-sample.wav) is
