@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { noiseGate } from './process';
+import { noiseGate, releaseCurve } from './process';
 
 const RATE = 25000;
 
@@ -37,15 +37,28 @@ describe('noise gate', () => {
     expect(Math.abs(out[1000 - 10])).toBeLessThan(Math.abs(src[1000 - 10]));
   });
 
-  it('holds, then releases linearly', () => {
+  it('holds, then releases on a curve', () => {
     const src = burstOverHiss(4000, 1000, 500);
     const out = noiseGate(src, RATE, opts);
     // Last hit sample sits at or just before 1499; hold keeps unity for 100 more.
     expect(out[1550]).toBe(src[1550]);
+    // Halfway through the release, well below the -6 dB a linear fade gives.
     const mid = out[1499 + 100 + 100] / src[1499 + 100 + 100];
-    expect(mid).toBeGreaterThan(0.3);
-    expect(mid).toBeLessThan(0.7);
+    expect(mid).toBeGreaterThan(0.04);
+    expect(mid).toBeLessThan(0.12);
     expect(out[1499 + 100 + 210]).toBe(0);
+  });
+
+  it('shapes the release from exactly 1 to exactly 0, falling fastest first', () => {
+    expect(releaseCurve(0)).toBe(1);
+    expect(releaseCurve(1)).toBe(0);
+    let prevStep = Infinity;
+    for (let i = 1; i <= 10; i++) {
+      const step = releaseCurve((i - 1) / 10) - releaseCurve(i / 10);
+      expect(step).toBeGreaterThan(0);
+      expect(step).toBeLessThan(prevStep);
+      prevStep = step;
+    }
   });
 
   it('wraps round the loop seam, because the engine does', () => {
