@@ -247,6 +247,16 @@ describe('encode pipeline', () => {
     expect(r.stats.slicePeaks).toHaveLength(16);
   });
 
+  it('lays out two bars as two one-bar buffers end to end', () => {
+    const r = encodeSample(sine(88200, 44100, 220), 44100, { tma: TMA_DEFAULT, bars: 2 });
+    expect(r.packed.length).toBe(SAMPLE_BYTES * 2);
+    expect(r.quantized.length).toBe(TOTAL_SAMPLES * 2);
+    expect(r.stats.slicePeaks).toHaveLength(32);
+    // Fades only at the outer ends: the join between the bars is continuous audio.
+    expect(peak(r.quantized.subarray(0, 8))).toBeLessThan(0.3);
+    expect(peak(r.quantized.subarray(TOTAL_SAMPLES - 100, TOTAL_SAMPLES + 100))).toBeGreaterThan(0.8);
+  });
+
   it('survives an all-silent input without NaNs', () => {
     const r = encodeSample(new Float32Array(44100), 44100, { tma: TMA_DEFAULT });
     expect([...r.packed].every((b) => Number.isFinite(b))).toBe(true);

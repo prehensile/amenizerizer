@@ -55,6 +55,12 @@ export interface EncodeOptions {
   fitMode?: FitMode;
   /** TMA the ROM will be patched with; sets the playback rate. */
   tma: number;
+  /**
+   * How many bars the selection holds. Each bar fills its own 16 KiB, laid out
+   * exactly as a one-bar encode is, so the result is `bars` buffers end to end.
+   * The stock ROM holds one; a banked build (amenizer-gbdk) can hold two.
+   */
+  bars?: number;
   removeDcOffset?: boolean;
   highPassHz?: number;
   /** null normalises to `normalizeTarget`; a number is a literal dB trim. */
@@ -76,7 +82,7 @@ export interface EncodeOptions {
 }
 
 export interface EncodeResult {
-  /** 16384 bytes, ready to drop at ROM 0x4000. */
+  /** 16384 bytes per bar, ready to drop at ROM 0x4000 (one bank per bar). */
   packed: Uint8Array;
   /** Exactly what the hardware will reconstruct, for preview and export. */
   quantized: Float32Array;
@@ -103,6 +109,7 @@ export function encodeSample(
     endSample = source.length,
     fitMode = 'fit',
     tma,
+    bars = 1,
     removeDcOffset = true,
     highPassHz = 80,
     gainDb = null,
@@ -117,6 +124,7 @@ export function encodeSample(
   } = options;
 
   const rate = sampleRateForTma(tma);
+  const totalSamples = TOTAL_SAMPLES * bars;
 
   const from = Math.max(0, Math.min(source.length, Math.floor(startSample)));
   const to = Math.max(from, Math.min(source.length, Math.floor(endSample)));
@@ -125,14 +133,14 @@ export function encodeSample(
   // How many output samples the selection is worth.
   let targetLen: number;
   if (fitMode === 'fit') {
-    targetLen = TOTAL_SAMPLES;
+    targetLen = totalSamples;
   } else {
     const natural = Math.round((region.length * rate) / sourceRate);
-    if (natural > TOTAL_SAMPLES) {
+    if (natural > totalSamples) {
       // Keeping pitch means dropping the overflow, not squeezing it in — so
       // shorten the source to what the buffer holds and resample 1:1 in rate.
-      region = region.subarray(0, Math.floor((TOTAL_SAMPLES * sourceRate) / rate));
-      targetLen = TOTAL_SAMPLES;
+      region = region.subarray(0, Math.floor((totalSamples * sourceRate) / rate));
+      targetLen = totalSamples;
     } else {
       targetLen = Math.max(1, natural);
     }
@@ -141,8 +149,8 @@ export function encodeSample(
   let buf = region.length > 0 ? resample(region, targetLen) : new Float32Array(targetLen);
 
   // Pad with silence when the source is shorter than the buffer.
-  if (buf.length < TOTAL_SAMPLES) {
-    const padded = new Float32Array(TOTAL_SAMPLES);
+  if (buf.length < totalSamples) {
+    const padded = new Float32Array(totalSamples);
     padded.set(buf);
     buf = padded;
   }
@@ -165,8 +173,8 @@ export function encodeSample(
   const packed = packNibbles(nibbles);
   const quantized = nibblesToFloat(nibbles);
 
-  if (packed.length !== SAMPLE_BYTES) {
-    throw new Error(`Encoder produced ${packed.length} bytes, expected ${SAMPLE_BYTES}.`);
+  if (packed.length !== SAMPLE_BYTES * bars) {
+    throw new Error(`Encoder produced ${packed.length} bytes, expected ${SAMPLE_BYTES * bars}.`);
   }
 
   let errSq = 0;
@@ -177,7 +185,7 @@ export function encodeSample(
   const errRms = Math.sqrt(errSq / quantized.length);
 
   const slicePeaks: number[] = [];
-  for (let s = 0; s < TOTAL_SAMPLES / SLICE_SAMPLES; s++) {
+  for (let s = 0; s < totalSamples / SLICE_SAMPLES; s++) {
     slicePeaks.push(peak(quantized.subarray(s * SLICE_SAMPLES, (s + 1) * SLICE_SAMPLES)));
   }
 
